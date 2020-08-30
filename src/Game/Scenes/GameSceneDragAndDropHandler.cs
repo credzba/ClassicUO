@@ -45,28 +45,34 @@ namespace ClassicUO.Game.Scenes
                     GameActions.DropItem(ItemHold.Serial, 0xFFFF, 0xFFFF, 0, container.Serial);
                 else if (SerialHelper.IsItem(container.Serial))
                     GameActions.DropItem(ItemHold.Serial, container.X, container.Y, container.Z, container.Serial);
-
-                ItemHold.Enabled = false;
-                ItemHold.Dropped = true;
             }
         }
 
-        private bool PickupItemBegin(Item item, int x, int y, int? amount = null, Point? offset = null)
+        private bool PickupItemBegin(uint serial, int x, int y, int? amount = null, Point? offset = null)
         {
-            if (World.Player.IsDead || item == null || item.IsDestroyed || item.IsMulti || item.OnGround && (item.IsLocked || item.Distance > Constants.DRAG_ITEMS_DISTANCE))
+            if (World.Player.IsDead || ItemHold.Enabled)
+                return false;
+
+            Item item = World.Items.Get(serial);
+
+            if (item == null || item.IsDestroyed || item.IsMulti || item.OnGround && (item.IsLocked || item.Distance > Constants.DRAG_ITEMS_DISTANCE))
                 return false;
 
             if (!amount.HasValue && item.Amount > 1 && item.ItemData.IsStackable)
             {
                 if (ProfileManager.Current.HoldShiftToSplitStack == Keyboard.Shift)
                 {
-                    if (UIManager.GetGump<SplitMenuGump>(item) != null)
-                        return false;
-
-                    SplitMenuGump gump = new SplitMenuGump(item, new Point(x, y))
+                    SplitMenuGump gump = UIManager.GetGump<SplitMenuGump>(item);
+                   
+                    if (gump != null)
                     {
-                        X = Mouse.Position.X - 80,
-                        Y = Mouse.Position.Y - 40
+                        return false;
+                    }
+
+                    gump = new SplitMenuGump(item, new Point(x, y))
+                    {
+                        X = Mouse.LDropPosition.X - 80,
+                        Y = Mouse.LDropPosition.Y - 40
                     };
                     UIManager.Add(gump);
                     UIManager.AttemptDragControl(gump, Mouse.Position, true);
@@ -80,21 +86,25 @@ namespace ClassicUO.Game.Scenes
 
         private bool PickupItemDirectly(Item item, int x, int y, int amount, Point? offset)
         {
-            if (World.Player.IsDead || ItemHold.Enabled || item == null || item.IsDestroyed /*|| (!ItemHold.Enabled && ItemHold.Dropped && ItemHold.Serial.IsValid)*/)
+            if (World.Player.IsDead || ItemHold.Enabled || item == null || item.IsDestroyed)
                 return false;
 
+            if (amount <= 0)
+                amount = item.Amount;
+
             ItemHold.Clear();
-            ItemHold.Set(item, amount <= 0 ? item.Amount : (ushort) amount);
+            ItemHold.Set(item, (ushort) amount);
+            NetClient.Socket.Send(new PPickUpRequest(item, (ushort) amount));
             UIManager.GameCursor.SetDraggedItem(offset);
 
             if (!item.OnGround)
             {
-                Entity entity = World.Get(item.Container);
+                //Entity entity = World.Get(item.Container);
                 //item.Container = Serial.INVALID;
                 //entity.Items.Remove(item);
 
-                if (entity.HasEquipment)
-                    entity.Equipment[(int) item.Layer] = null;
+                //if (entity != null && entity.HasEquipment)
+                //    entity.FindItemByLayer( item.Layer] = null;
 
                 //entity.Items.ProcessDelta();
             }
@@ -104,36 +114,16 @@ namespace ClassicUO.Game.Scenes
             }
             item.TextContainer?.Clear();
 
-            item.AllowedToDraw = false;
+            //item.AllowedToDraw = false;
             //World.Items.Remove(item);
             //World.Items.ProcessDelta();
             //CloseItemGumps(item);
 
-            NetClient.Socket.Send(new PPickUpRequest(item, (ushort) amount));
+            //World.RemoveItem(item.Serial, true);
+
+            World.ObjectToRemove = item.Serial;
 
             return true;
-        }
-
-        private void CloseItemGumps(Item item)
-        {
-            if (item != null)
-            {
-                var gump = UIManager.GetGump<Gump>(item);
-           
-                if (gump != null)
-                {
-                    if (gump.GumpType == GUMP_TYPE.GT_SPELLBUTTON)
-                        return;
-
-                    gump.Dispose();
-                }
-
-                if (SerialHelper.IsValid(item.Container))
-                {
-                    foreach (Item i in item.Items)
-                        CloseItemGumps(i);
-                }
-            }
         }
 
         public void DropHeldItemToWorld(int x, int y, sbyte z)
@@ -148,13 +138,21 @@ namespace ClassicUO.Game.Scenes
                 z = 0;
             }
             else
+            {
                 serial = 0xFFFF_FFFF;
+            }
 
             if (ItemHold.Enabled && ItemHold.Serial != serial)
             {
                 GameActions.DropItem(ItemHold.Serial, x, y, z, serial);
-                ItemHold.Enabled = false;
-                ItemHold.Dropped = true;
+            }
+        }
+
+        public void DropHeldItemToContainer(uint container, int x = 0xFFFF, int y = 0xFFFF)
+        {
+            if (ItemHold.Enabled && ItemHold.Serial != container)
+            {
+                GameActions.DropItem(ItemHold.Serial, x, y, 0, container);
             }
         }
 
@@ -166,6 +164,11 @@ namespace ClassicUO.Game.Scenes
 
                 if (gump != null && (x != 0xFFFF || y != 0xFFFF))
                 {
+                    bool is_chessboard = gump.Graphic == 0x091A || gump.Graphic == 0x092E;
+
+                    if (is_chessboard)
+                        y += 20;
+
                     Rectangle bounds = ContainerManager.Get(gump.Graphic).Bounds;
                     ArtTexture texture = ArtLoader.Instance.GetTexture(ItemHold.DisplayedGraphic);
                     float scale = UIManager.ContainerScale;
@@ -173,7 +176,7 @@ namespace ClassicUO.Game.Scenes
                     bounds.X = (int) (bounds.X * scale);
                     bounds.Y = (int) (bounds.Y * scale);
                     bounds.Width = (int) (bounds.Width * scale);
-                    bounds.Height = (int) (bounds.Height * scale);
+                    bounds.Height = (int) ((bounds.Height + (is_chessboard ? 20 : 0)) * scale);
 
                     if (texture != null && !texture.IsDisposed)
                     {
@@ -217,18 +220,17 @@ namespace ClassicUO.Game.Scenes
 
 
                 GameActions.DropItem(ItemHold.Serial, x, y, 0, container);
-                ItemHold.Enabled = false;
-                ItemHold.Dropped = true;
             }
         }
 
-        public void WearHeldItem(Mobile target)
+        public void WearHeldItem(uint serial = 0)
         {
             if (ItemHold.Enabled && ItemHold.IsWearable)
             {
-                GameActions.Equip(ItemHold.Serial, (Layer) TileDataLoader.Instance.StaticData[ItemHold.Graphic].Layer, target);
-                ItemHold.Enabled = false;
-                ItemHold.Dropped = true;
+                if (!SerialHelper.IsValid(serial))
+                    serial = World.Player;
+
+                GameActions.Equip(ItemHold.Serial, (Layer) ItemHold.ItemData.Layer, serial);
             }
         }
     }

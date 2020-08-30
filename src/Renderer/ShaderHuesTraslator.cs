@@ -19,7 +19,10 @@
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endregion
 
+using System;
 using System.Runtime.CompilerServices;
+
+using ClassicUO.IO.Resources;
 
 using Microsoft.Xna.Framework;
 
@@ -37,7 +40,6 @@ namespace ClassicUO.Renderer
         public const byte SHADER_SPECTRAL = 10;
         public const byte SHADER_SHADOW = 12;
         public const byte SHADER_LIGHTS = 13;
-        public const byte COLOR_SWAP = 0x20;
 
         private const ushort SPECTRAL_COLOR_FLAG = 0x4000;
 
@@ -68,16 +70,20 @@ namespace ClassicUO.Renderer
                 type = SHADER_SPECTRAL;
             else if (hue != 0)
             {
+                hue -= 1;
+
                 if (partial)
                     type = SHADER_PARTIAL_HUED;
                 else
                     type = SHADER_HUED;
+
+                if (gump)
+                {
+                    type |= 20;
+                }
             }
             else
                 type = SHADER_NONE;
-
-            if (gump)
-                type += COLOR_SWAP;
 
             hueVector.X = hue;
             hueVector.Y = type;

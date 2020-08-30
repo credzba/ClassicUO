@@ -29,11 +29,11 @@ using ClassicUO.Renderer;
 
 namespace ClassicUO.IO.Resources
 {
-    internal class GumpsLoader : UOFileLoader<UOTexture16>
+    internal class GumpsLoader : UOFileLoader<UOTexture32>
     {
         private UOFile _file;
 
-        private GumpsLoader()
+        private GumpsLoader(int count) : base(count)
         {
 
         }
@@ -45,7 +45,7 @@ namespace ClassicUO.IO.Resources
             {
                 if (_instance == null)
                 {
-                    _instance = new GumpsLoader();
+                    _instance = new GumpsLoader(Constants.MAX_GUMP_DATA_INDEX_COUNT);
                 }
 
                 return _instance;
@@ -58,7 +58,7 @@ namespace ClassicUO.IO.Resources
 
                 string path = UOFileManager.GetUOFilePath("gumpartLegacyMUL.uop");
 
-                if (File.Exists(path))
+                if (Client.IsUOPInstallation && File.Exists(path))
                 {
                     _file = new UOFileUop(path, "build/gumpartlegacymul/{0:D8}.tga", true);
                     Entries = new UOFileIndex[Constants.MAX_GUMP_DATA_INDEX_COUNT];
@@ -66,13 +66,21 @@ namespace ClassicUO.IO.Resources
                 }
                 else
                 {
-                    path = UOFileManager.GetUOFilePath("Gumpart.mul");
-                    string pathidx = UOFileManager.GetUOFilePath("Gumpidx.mul");
+                    path = UOFileManager.GetUOFilePath("gumpart.mul");
+                    string pathidx = UOFileManager.GetUOFilePath("gumpidx.mul");
 
-                    if (File.Exists(path) && File.Exists(pathidx))
+                    if (!File.Exists(path))
                     {
-                        _file = new UOFileMul(path, pathidx, Constants.MAX_GUMP_DATA_INDEX_COUNT, 12);
+                        path = UOFileManager.GetUOFilePath("Gumpart.mul");
                     }
+
+                    if (!File.Exists(pathidx))
+                    {
+                        pathidx = UOFileManager.GetUOFilePath("Gumpidx.mul");
+                    }
+
+                    _file = new UOFileMul(path, pathidx, Constants.MAX_GUMP_DATA_INDEX_COUNT, 12);
+
                     Client.UseUOPGumps = false;
                 }
                 _file.FillEntries(ref Entries);
@@ -95,6 +103,9 @@ namespace ClassicUO.IO.Resources
 
                         int[] group = defReader.ReadGroup();
 
+                        if (group == null)
+                            continue;
+
                         for (int i = 0; i < group.Length; i++)
                         {
                             int checkIndex = group[i];
@@ -105,6 +116,8 @@ namespace ClassicUO.IO.Resources
 
                             Entries[ingump] = Entries[checkIndex];
 
+                            Entries[ingump].Hue = (ushort) defReader.ReadInt();
+
                             break;
                         }
                     }
@@ -112,33 +125,38 @@ namespace ClassicUO.IO.Resources
             });
         }
 
-        public override UOTexture16 GetTexture(uint g)
+        public override UOTexture32 GetTexture(uint g)
         {
-            if (!ResourceDictionary.TryGetValue(g, out UOTexture16 texture) || texture.IsDisposed)
+            if (g >= Resources.Length)
+                return null;
+
+            ref var texture = ref Resources[g];
+
+            if (texture == null || texture.IsDisposed)
             {
-                ushort[] pixels = GetGumpPixels(g, out int w, out int h);
+                var pixels = GetGumpPixels(g, out int w, out int h);
 
                 if (pixels == null || pixels.Length == 0)
                     return null;
 
-                texture = new UOTexture16(w, h);
+                texture = new UOTexture32(w, h);
                 texture.PushData(pixels);
-                ResourceDictionary.Add(g, texture);
+
+                SaveID(g);
+            }
+            else
+            {
+                texture.Ticks = Time.Ticks;
             }
 
             return texture;
         }
 
-        public override void CleanResources()
+        public unsafe uint[] GetGumpPixels(uint index, out int width, out int height)
         {
-           
-        }
+            ref var entry = ref GetValidRefEntry((int) index);
 
-        public unsafe ushort[] GetGumpPixels(uint index, out int width, out int height)
-        {
-            ref readonly var entry = ref GetValidRefEntry((int) index);
-
-            if (entry.Extra == -1)
+            if (entry.Width <= 0 && entry.Height <= 0)
             {
                 width = 0;
                 height = 0;
@@ -146,8 +164,9 @@ namespace ClassicUO.IO.Resources
                 return null;
             }
 
-            width = (entry.Extra >> 16) & 0xFFFF;
-            height = entry.Extra & 0xFFFF;
+            width = entry.Width;
+            height = entry.Height;
+            ushort color = entry.Hue;
 
             if (width == 0 || height == 0)
                 return null;
@@ -158,29 +177,43 @@ namespace ClassicUO.IO.Resources
 
             IntPtr dataStart = _file.PositionAddress;
 
-            ushort[] pixels = new ushort[width * height];
+            uint[] pixels = new uint[width * height];
             int* lookuplist = (int*) dataStart;
 
-            for (int y = 0; y < height; y++)
-            {
-                int gsize = 0;
+            int gsize;
 
+            for (int y = 0, half_len = entry.Length >> 2; y < height; y++)
+            {
                 if (y < height - 1)
                     gsize = lookuplist[y + 1] - lookuplist[y];
                 else
-                    gsize = (entry.Length >> 2) - lookuplist[y];
+                    gsize = half_len - lookuplist[y];
+               
                 GumpBlock* gmul = (GumpBlock*) (dataStart + (lookuplist[y] << 2));
+               
                 int pos = y * width;
 
                 for (int i = 0; i < gsize; i++)
                 {
-                    ushort val = gmul[i].Value;
-                    ushort hue = (ushort) ((val != 0 ? 0x8000 : 0) | val);
+                    uint val = gmul[i].Value;
+
+                    if (color != 0 && val != 0)
+                    {
+                        val = HuesLoader.Instance.GetColor16(gmul[i].Value, color);
+                    }
+
+                    if (val != 0)
+                    {
+                        //val = 0x8000 | val;
+                        val = Utility.HuesHelper.Color16To32(gmul[i].Value) | 0xFF_00_00_00;
+                    }
 
                     int count = gmul[i].Run;
 
                     for (int j = 0; j < count; j++)
-                        pixels[pos++] = hue == 0 && count == 1 ? (ushort)1 : hue;//avoid single zero pixels
+                    {
+                        pixels[pos++] = val;
+                    } 
                 }
             }
 
@@ -188,10 +221,10 @@ namespace ClassicUO.IO.Resources
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        private readonly struct GumpBlock
+        private ref struct GumpBlock
         {
-            public readonly ushort Value;
-            public readonly ushort Run;
+            public ushort Value;
+            public ushort Run;
         }
     }
 }

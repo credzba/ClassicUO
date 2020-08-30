@@ -29,13 +29,13 @@ using ClassicUO.Utility;
 
 namespace ClassicUO.IO.Resources
 {
-    internal class TexmapsLoader : UOFileLoader<UOTexture>
+    internal class TexmapsLoader : UOFileLoader<UOTexture32>
     {
-        private readonly ushort[] _textmapPixels128 = new ushort[128 * 128];
-        private readonly ushort[] _textmapPixels64 = new ushort[64 * 64];
+        private readonly uint[] _textmapPixels128 = new uint[128 * 128];
+        private readonly uint[] _textmapPixels64 = new uint[64 * 64];
         private UOFile _file;
 
-        private TexmapsLoader()
+        private TexmapsLoader(int count) : base(count) 
         {
 
         }
@@ -47,7 +47,7 @@ namespace ClassicUO.IO.Resources
             {
                 if (_instance == null)
                 {
-                    _instance = new TexmapsLoader();
+                    _instance = new TexmapsLoader(Constants.MAX_LAND_TEXTURES_DATA_INDEX_COUNT);
                 }
 
                 return _instance;
@@ -82,6 +82,9 @@ namespace ClassicUO.IO.Resources
                             continue;
 
                         int[] group = defReader.ReadGroup();
+
+                        if (group == null)
+                            continue;
 
                         for (int i = 0; i < group.Length; i++)
                         {
@@ -139,68 +142,36 @@ namespace ClassicUO.IO.Resources
 
         }
 
-        public override UOTexture GetTexture(uint g)
+        public override UOTexture32 GetTexture(uint g)
         {
-            if (!ResourceDictionary.TryGetValue(g, out UOTexture texture) || texture.IsDisposed)
+            if (g >= Resources.Length)
+                return null;
+
+            ref var texture = ref Resources[g];
+
+            if (texture == null || texture.IsDisposed)
             {
-                ushort[] pixels = GetTextmapTexture((ushort) g, out int size);
+                uint[] pixels = GetTextmapTexture((ushort) g, out int size);
 
                 if (pixels == null || pixels.Length == 0)
                     return null;
 
-                texture = new UOTexture16(size, size);
+                texture = new UOTexture32(size, size);
                 texture.SetData(pixels);
-                //_usedIndex.Add(g);
-                ResourceDictionary.Add(g, texture);
+
+                SaveID(g);
             }
-            //else
-            //    texture.Ticks = Time.Ticks + 3000;
+            else
+            {
+                texture.Ticks = Time.Ticks;
+            }
 
             return texture;
         }
 
-        public override void CleanResources()
+        private uint[] GetTextmapTexture(ushort index, out int size)
         {
-            throw new NotImplementedException();
-        }
-
-        //public void ClearUnusedTextures()
-        //{
-        //    int count = 0;
-        //    long ticks = Time.Ticks - 3000;
-
-        //    for (int i = 0; i < _usedIndex.Count; i++)
-        //    {
-        //        uint g = _usedIndex[i];
-        //        UOTexture texture = ResourceDictionary[g];
-
-        //        if (texture.Ticks < ticks)
-        //        {
-        //            texture.Dispose();
-        //            _usedIndex.RemoveAt(i--);
-        //            ResourceDictionary.Remove(g);
-
-        //            if (++count >= 20)
-        //                break;
-        //        }
-        //    }
-        //}
-
-        //public void Clear()
-        //{
-        //    for (int i = 0; i < _usedIndex.Count; i++)
-        //    {
-        //        uint g = _usedIndex[i];
-        //        UOTexture texture = ResourceDictionary[g];
-        //        texture.Dispose();
-        //        _usedIndex.RemoveAt(i--);
-        //        ResourceDictionary.Remove(g);
-        //    }
-        //}
-
-        private ushort[] GetTextmapTexture(ushort index, out int size)
-        {
-            ref readonly var entry = ref GetValidRefEntry(index);
+            ref var entry = ref GetValidRefEntry(index);
 
             if (entry.Length <= 0)
             {
@@ -209,9 +180,9 @@ namespace ClassicUO.IO.Resources
                 return null;
             }
 
-            ushort[] pixels;
+            uint[] pixels;
 
-            if (entry.Extra == 0)
+            if (entry.Width == 0 && entry.Height == 0)
             {
                 size = 64;
                 pixels = _textmapPixels64;
@@ -229,7 +200,9 @@ namespace ClassicUO.IO.Resources
                 int pos = i * size;
 
                 for (int j = 0; j < size; j++)
-                    pixels[pos + j] = (ushort) (0x8000 | _file.ReadUShort());
+                {
+                    pixels[pos + j] = Utility.HuesHelper.Color16To32(_file.ReadUShort()) | 0xFF_00_00_00;
+                } 
             }
 
             return pixels;

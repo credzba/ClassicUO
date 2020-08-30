@@ -74,7 +74,7 @@ namespace ClassicUO.IO.Resources
 
                 for (int i = 0, count = 0; i < Entries.Length; i++)
                 { 
-                    ref readonly var entry = ref GetValidRefEntry(i);
+                    ref var entry = ref GetValidRefEntry(i);
 
                     if (entry.Length > 0)
                     {
@@ -101,15 +101,69 @@ namespace ClassicUO.IO.Resources
 
             return -1;
         }
-
-        public override void CleanResources()
-        {
-            //
-        }
     }
 
     internal class SkillEntry
     {
+        internal enum HardCodedName
+        {
+            Alchemy,
+            Anatomy,
+            AnimalLore,
+            ItemID,
+            ArmsLore,
+            Parrying,
+            Begging,
+            Blacksmith,
+            Bowcraft,
+            Peacemaking,
+            Camping,
+            Carpentry,
+            Cartography,
+            Cooking,
+            DetectHidden,
+            Enticement,
+            EvaluateIntelligence,
+            Healing,
+            Fishing,
+            ForensicEvaluation,
+            Herding,
+            Hiding,
+            Provocation,
+            Inscription,
+            Lockpicking,
+            Magery,
+            ResistingSpells,
+            Tactics,
+            Snooping,
+            Musicanship,
+            Poisoning,
+            Archery,
+            SpiritSpeak,
+            Stealing,
+            Tailoring,
+            AnimalTaming,
+            TasteIdentification,
+            Tinkering,
+            Tracking,
+            Veterinary,
+            Swordsmanship,
+            MaceFighting,
+            Fencing,
+            Wrestling,
+            Lumberjacking,
+            Mining,
+            Meditation,
+            Stealth,
+            Disarm,
+            Necromancy,
+            Focus,
+            Chivalry,
+            Bushido,
+            Ninjitsu,
+            Spellweaving
+        }
+
         public SkillEntry(int index, string name, bool hasAction)
         {
             Index = index;

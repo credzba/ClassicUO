@@ -27,11 +27,11 @@ using ClassicUO.Utility;
 
 namespace ClassicUO.IO.Resources
 {
-    internal class LightsLoader : UOFileLoader<UOTexture16>
+    internal class LightsLoader : UOFileLoader<UOTexture32>
     {
         private UOFileMul _file;
 
-        private LightsLoader()
+        protected LightsLoader(int count) : base(count)
         {
 
         }
@@ -43,7 +43,7 @@ namespace ClassicUO.IO.Resources
             {
                 if (_instance == null)
                 {
-                    _instance = new LightsLoader();
+                    _instance = new LightsLoader(Constants.MAX_LIGHTS_DATA_INDEX_COUNT);
                 }
 
                 return _instance;
@@ -65,33 +65,47 @@ namespace ClassicUO.IO.Resources
             });
         }
 
-
-        public override void CleanResources()
+        public override UOTexture32 GetTexture(uint id)
         {
-        }
+            if (id >= Resources.Length)
+                return null;
 
-        public override UOTexture16 GetTexture(uint id)
-        {
-            if (!ResourceDictionary.TryGetValue(id, out var texture))
+            ref var texture = ref Resources[id];
+
+            if (texture == null || texture.IsDisposed)
             {
-                ushort[] pixels = GetLight(id, out int w, out int h);
+                uint[] pixels = GetLight(id, out int w, out int h);
 
-                texture = new UOTexture16(w, h);
+                if (w == 0 && h == 0)
+                    return null;
+
+                texture = new UOTexture32(w, h);
                 texture.PushData(pixels);
-                ResourceDictionary.Add(id, texture);
+
+                SaveID(id);
+            }
+            else
+            {
+                texture.Ticks = Time.Ticks;
             }
 
             return texture;
         }
 
 
-        private ushort[] GetLight(uint idx, out int width, out int height)
+        private uint[] GetLight(uint idx, out int width, out int height)
         {
-            ref readonly var entry = ref GetValidRefEntry((int) idx);
+            ref var entry = ref GetValidRefEntry((int) idx);
 
-            width = entry.Extra & 0xFFFF;
-            height = (entry.Extra >> 16) & 0xFFFF;
-            ushort[] pixels = new ushort[width * height];
+            width = entry.Width;
+            height = entry.Height;
+
+            if (width == 0 && height == 0)
+            {
+                return null;
+            }
+
+            uint[] pixels = new uint[width * height];
 
             _file.Seek(entry.Offset);
 
@@ -103,7 +117,10 @@ namespace ClassicUO.IO.Resources
                 {
                     ushort val = _file.ReadByte();
                     val = (ushort) ((val << 10) | (val << 5) | val);
-                    pixels[pos + j] = (ushort) ((val != 0 ? 0x8000 : 0) | val);
+                    if (val != 0)
+                    {
+                        pixels[pos + j] = Utility.HuesHelper.Color16To32(val) | 0xFF_00_00_00;;
+                    }
                 }
             }
 

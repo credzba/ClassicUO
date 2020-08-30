@@ -34,14 +34,18 @@ namespace ClassicUO
         public static string[] Args;
         public static string[] Plugins;
         public static bool Debug;
+        public static bool Profiler;
         public static bool IsHighDPI;
         public static uint CurrentRefreshRate;
         public static bool SkipLoginScreen;
+        public static bool IsOutlands;
 
-        public static readonly bool IsUnix = Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX;
+        public static readonly bool IsUnix = Environment.OSVersion.Platform != PlatformID.Win32NT &&
+                                             Environment.OSVersion.Platform != PlatformID.Win32Windows &&
+                                             Environment.OSVersion.Platform != PlatformID.Win32S &&
+                                             Environment.OSVersion.Platform != PlatformID.WinCE;
+
         public static readonly Version Version = Assembly.GetExecutingAssembly().GetName().Version;
         public static readonly string ExecutablePath = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
-
-        public static bool DisableUpdateWindowCaption;
     }
 }

@@ -526,7 +526,7 @@ namespace ClassicUO.Game.Managers
                     {
                         int grp = bin.ReadInt32();
 
-                        if (grp < groups.Length && skillidx + 1 < SkillsLoader.Instance.SkillsCount)
+                        if (grp < groups.Length && skillidx < SkillsLoader.Instance.SkillsCount)
                         {
                             groups[grp].Add(skillidx++);
                         }
@@ -541,7 +541,7 @@ namespace ClassicUO.Game.Managers
             }
             catch (Exception e)
             {
-                Log.Debug($"Error while reading skillgrp.mul, using CUO defaults! exception given is: {e}");
+                Log.Error($"Error while reading skillgrp.mul, using CUO defaults! exception given is: {e}");
 
                 return false;
             }

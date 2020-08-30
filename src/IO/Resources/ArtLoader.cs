@@ -36,15 +36,15 @@ namespace ClassicUO.IO.Resources
 {
     internal class ArtLoader : UOFileLoader<ArtTexture>
     {
-        private static readonly ushort[] _empty = { };
-
-        private readonly Dictionary<uint, UOTexture16> _landDictionary = new Dictionary<uint, UOTexture16>();
         private UOFile _file;
         private ushort _graphicMask;
+        private readonly UOTexture32[] _land_resources;
+        private readonly LinkedList<uint> _used_land_textures_ids = new LinkedList<uint>();
 
-        private ArtLoader()
+        private ArtLoader(int static_count, int land_count) : base(static_count)
         {
             _graphicMask = Client.IsUOPInstallation ? (ushort) 0xFFFF : (ushort) 0x3FFF;
+            _land_resources = new UOTexture32[land_count];
         }
 
         private static ArtLoader _instance;
@@ -54,7 +54,7 @@ namespace ClassicUO.IO.Resources
             {
                 if (_instance == null)
                 {
-                    _instance = new ArtLoader();
+                    _instance = new ArtLoader(Constants.MAX_STATIC_DATA_INDEX_COUNT, Constants.MAX_LAND_DATA_INDEX_COUNT);
                 }
 
                 return _instance;
@@ -68,7 +68,7 @@ namespace ClassicUO.IO.Resources
             {
                 string filepath = UOFileManager.GetUOFilePath("artLegacyMUL.uop");
 
-                if (File.Exists(filepath))
+                if (Client.IsUOPInstallation && File.Exists(filepath))
                 {
                     _file = new UOFileUop(filepath, "build/artlegacymul/{0:D8}.tga");
                     Entries = new UOFileIndex[Constants.MAX_STATIC_DATA_INDEX_COUNT];
@@ -90,21 +90,48 @@ namespace ClassicUO.IO.Resources
 
         public override ArtTexture GetTexture(uint g)
         {
-            if (!ResourceDictionary.TryGetValue(g, out ArtTexture texture) || texture.IsDisposed)
+            if (g >= Resources.Length)
+                return null;
+
+            ref var texture = ref Resources[g];
+
+            if (texture == null || texture.IsDisposed)
             {
                 ReadStaticArt(ref texture, (ushort) g);
-                ResourceDictionary.Add(g, texture);
+                if (texture != null)
+                {
+                    SaveID(g);
+                }
             }
+            else
+            {
+                texture.Ticks = Time.Ticks;
+            }
+
             return texture;
         }
 
-        public UOTexture16 GetLandTexture(uint g)
+        public UOTexture32 GetLandTexture(uint g)
         {
-            if (!_landDictionary.TryGetValue(g, out UOTexture16 texture) || texture.IsDisposed)
+            if (g >= _land_resources.Length)
+                return null;
+
+            ref var texture = ref _land_resources[g];
+
+            if (texture == null || texture.IsDisposed)
             {
                 ReadLandArt(ref texture, (ushort) g);
-                _landDictionary.Add(g, texture);
+
+                if (texture != null)
+                {
+                    _used_land_textures_ids.AddLast(g);
+                }
             }
+            else
+            {
+                texture.Ticks = Time.Ticks;
+            }
+
             return texture;
         }
 
@@ -114,7 +141,7 @@ namespace ClassicUO.IO.Resources
 
             if (entry < _file.Length && entry >= 0)
             {
-                ref readonly UOFileIndex e = ref GetValidRefEntry(entry);
+                ref UOFileIndex e = ref GetValidRefEntry(entry);
 
                 address = _file.StartAddress.ToInt64() + e.Offset;
                 size = e.DecompressedLength == 0 ? e.Length : e.DecompressedLength;
@@ -126,41 +153,51 @@ namespace ClassicUO.IO.Resources
             return base.TryGetEntryInfo(entry, out address, out size, out compressedsize);
         }
 
-        public override void CleanResources()
+        public override void ClearResources()
         {
-            ResourceDictionary.ToList().ForEach(s =>
-            {
-                s.Value.Dispose();
-                ResourceDictionary.Remove(s.Key);
-            });
+            base.ClearResources();
 
-            _landDictionary.ToList().ForEach(s =>
+            var first = _used_land_textures_ids.First;
+
+            while (first != null)
             {
-                s.Value.Dispose();
-                _landDictionary.Remove(s.Key);
-            });
+                var next = first.Next;
+
+                uint idx = first.Value;
+
+                if (idx < _land_resources.Length)
+                {
+                    ref var texture = ref _land_resources[idx];
+                    texture?.Dispose();
+                    texture = null;
+                }
+
+                _used_land_textures_ids.Remove(first);
+
+                first = next;
+            }
         }
 
         public override void CleaUnusedResources(int count)
         {
             base.CleaUnusedResources(count);
-            ClearUnusedResources(_landDictionary, count);
+            ClearUnusedResources(_land_resources, count);
         }
 
-        public unsafe ushort[] ReadStaticArt(ushort graphic, out short width, out short height, out Rectangle imageRectangle)
+        public unsafe uint[] ReadStaticArt(ushort graphic, out short width, out short height, out Rectangle imageRectangle)
         {
             imageRectangle.X = 0;
             imageRectangle.Y = 0;
             imageRectangle.Width = 0;
             imageRectangle.Height = 0;
 
-            ref readonly var entry = ref GetValidRefEntry(graphic + 0x4000);
+            ref var entry = ref GetValidRefEntry(graphic + 0x4000);
 
             if (entry.Length == 0)
             {
                 width = height = 0;
 
-                return _empty;
+                return null;
             }
 
             _file.Seek(entry.Offset);
@@ -169,9 +206,9 @@ namespace ClassicUO.IO.Resources
             height = _file.ReadShort();
 
             if (width == 0 || height == 0)
-                return _empty;
+                return null;
 
-            ushort[] pixels = new ushort[width * height];
+            uint[] pixels = new uint[width * height];
             ushort* ptr = (ushort*) _file.PositionAddress;
             ushort* lineoffsets = ptr;
             byte* datastart = (byte*) ptr + height * 2;
@@ -187,9 +224,7 @@ namespace ClassicUO.IO.Resources
 
                 if (xoffs + run >= 2048)
                 {
-                    pixels = new ushort[width * height];
-
-                    return pixels;
+                    return null;
                 }
 
                 if (xoffs + run != 0)
@@ -199,12 +234,9 @@ namespace ClassicUO.IO.Resources
 
                     for (int j = 0; j < run; j++)
                     {
-                        ushort val = *ptr++;
+                        var val = *ptr++;
 
-                        if (val != 0)
-                            val = (ushort) (0x8000 | val);
-                        //avoid single zero pixel
-                        pixels[pos++] = val == 0 && run == 1 ? (ushort)1 : val;
+                        pixels[pos++] = val == 0 && run == 1 ? 0x01 : (Utility.HuesHelper.Color16To32(val) | 0xFF_00_00_00);
                     }
 
                     x += run;
@@ -258,7 +290,8 @@ namespace ClassicUO.IO.Resources
 
                                 ref var currentPixel = ref pixels[currentY * width + currentX];
 
-                                if (currentPixel == 0u) pixel = 0x8000;
+                                if (currentPixel == 0u) 
+                                    pixel = 0xFF_00_00_00;
                             }
                         }
                     }
@@ -294,17 +327,10 @@ namespace ClassicUO.IO.Resources
         {
             Rectangle imageRectangle = new Rectangle();
 
-            if (StaticFilters.IsTree(graphic, out int stumpidx))
-            {
-                graphic = Constants.TREE_REPLACE_GRAPHIC;
-            }
-
-            ref readonly var entry = ref GetValidRefEntry(graphic + 0x4000);
+            ref var entry = ref GetValidRefEntry(graphic + 0x4000);
 
             if (entry.Length == 0)
             {
-                texture = new ArtTexture(imageRectangle, 0, 0);
-
                 return;
             }
 
@@ -315,12 +341,10 @@ namespace ClassicUO.IO.Resources
 
             if (width == 0 || height == 0)
             {
-                texture = new ArtTexture(imageRectangle, 0, 0);
-
                 return;
             }
 
-            ushort[] pixels = new ushort[width * height];
+            uint[] pixels = new uint[width * height];
             ushort* ptr = (ushort*) _file.PositionAddress;
             ushort* lineoffsets = ptr;
             byte* datastart = (byte*) ptr + height * 2;
@@ -337,7 +361,6 @@ namespace ClassicUO.IO.Resources
                 if (xoffs + run >= 2048)
                 {
                     texture = new ArtTexture(imageRectangle, 0, 0);
-
                     return;
                 }
 
@@ -346,13 +369,14 @@ namespace ClassicUO.IO.Resources
                     x += xoffs;
                     int pos = y * width + x;
 
-                    for (int j = 0; j < run; j++)
+                    for (int j = 0; j < run; j++, pos++)
                     {
                         ushort val = *ptr++;
 
                         if (val != 0)
-                            val = (ushort) (0x8000 | val);
-                        pixels[pos++] = val;
+                        {
+                            pixels[pos] = Utility.HuesHelper.Color16To32(val) | 0xFF_00_00_00;
+                        }          
                     }
 
                     x += run;
@@ -406,7 +430,8 @@ namespace ClassicUO.IO.Resources
 
                                 ref var currentPixel = ref pixels[currentY * width + currentX];
 
-                                if (currentPixel == 0u) pixel = 0x8000;
+                                if (currentPixel == 0u) 
+                                    pixel = 0xFF_00_00_00;;
                             }
                         }
                     }
@@ -434,26 +459,29 @@ namespace ClassicUO.IO.Resources
             imageRectangle.Width = maxX - minX;
             imageRectangle.Height = maxY - minY;
 
+            entry.Width = (short) ((width >> 1) - 22);
+            entry.Height = (short) (height - 44);
+
             texture = new ArtTexture(imageRectangle, width, height);
             texture.PushData(pixels);
         }
         
-        private void ReadLandArt(ref UOTexture16 texture, ushort graphic)
+        private void ReadLandArt(ref UOTexture32 texture, ushort graphic)
         {
             const int SIZE = 44 * 44;
 
             graphic &= _graphicMask;
-            ref readonly var entry = ref GetValidRefEntry(graphic);
+            ref var entry = ref GetValidRefEntry(graphic);
 
             if (entry.Length == 0)
             {
-                texture = new UOTexture16(44,44);
+                texture = new UOTexture32(44,44);
                 return;
             }
 
             _file.Seek(entry.Offset);
 
-            ushort[] data = new ushort[SIZE];
+            uint[] data = new uint[SIZE];
 
             for (int i = 0; i < 22; i++)
             {
@@ -463,7 +491,7 @@ namespace ClassicUO.IO.Resources
 
                 for (int j = start; j < end; j++)
                 {
-                    data[pos++] = (ushort) (0x8000 | _file.ReadUShort());
+                    data[pos++] = Utility.HuesHelper.Color16To32(_file.ReadUShort()) | 0xFF_00_00_00;
                 }
             }
 
@@ -474,12 +502,14 @@ namespace ClassicUO.IO.Resources
 
                 for (int j = i; j < end; j++)
                 {
-                    data[pos++] = (ushort) (0x8000 | _file.ReadUShort());
+                    data[pos++] = Utility.HuesHelper.Color16To32(_file.ReadUShort()) | 0xFF_00_00_00;
                 }
             }
 
-            texture = new UOTexture16(44, 44);
-            texture.PushData(data);
+            texture = new UOTexture32(44, 44);
+            // we don't need to store the data[] pointer because
+            // land is always hoverable
+            texture.SetData(data);
         }
     }
 }

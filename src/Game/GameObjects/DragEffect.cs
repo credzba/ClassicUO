@@ -75,18 +75,6 @@ namespace ClassicUO.Game.GameObjects
 
             ResetHueVector();
 
-            if (AnimationGraphic != _displayedGraphic || Texture == null || Texture.IsDisposed)
-            {
-                _displayedGraphic = AnimationGraphic;
-                Texture = ArtLoader.Instance.GetTexture(AnimationGraphic);
-                Bounds.X = 0;
-                Bounds.Y = 0;
-                Bounds.Width = Texture.Width;
-                Bounds.Height = Texture.Height;
-            }
-
-            Bounds.X = (int) Offset.X + 22;
-            Bounds.Y = (int) -Offset.Y + 22;
 
             if (ProfileManager.Current.NoColorObjectsOutOfRange && Distance > World.ClientViewRange)
             {
@@ -102,9 +90,10 @@ namespace ClassicUO.Game.GameObjects
                 ShaderHuesTraslator.GetHueVector(ref HueVector, Hue);
 
             //Engine.DebugInfo.EffectsRendered++;
-            base.Draw(batcher, posX, posY);
 
-            ref readonly StaticTiles data = ref TileDataLoader.Instance.StaticData[_displayedGraphic];
+            DrawStatic(batcher, AnimationGraphic, posX - ((int) Offset.X + 22), posY - ((int) -Offset.Y + 22), ref HueVector);
+
+            ref StaticTiles data = ref TileDataLoader.Instance.StaticData[_displayedGraphic];
 
             if (data.IsLight && Source != null)
             {

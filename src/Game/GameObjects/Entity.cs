@@ -20,46 +20,36 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Gumps;
+using ClassicUO.Network;
+using ClassicUO.Renderer;
+using ClassicUO.Utility.Logging;
+using static ClassicUO.Network.NetClient;
 
 namespace ClassicUO.Game.GameObjects
 {
     internal abstract class Entity : GameObject, IEquatable<Entity>
     {
         private Direction _direction;
-        private Item[] _equipment;
 
         protected Entity(uint serial)
         {
             Serial = serial;
-            Items = new EntityCollection<Item>();
         }
-
-
-        public uint LastStepTime;
 
         protected long LastAnimationChangeTime;
-
-        public EntityCollection<Item> Items { get; protected set; }
-
-        public bool HasEquipment => _equipment != null;
-
-        public Item[] Equipment
-        {
-            get => _equipment ?? (_equipment = new Item[(int) Layer.Bank + 0x11]);
-            set => _equipment = value;
-        }
-
+        public sbyte AnimIndex;
+        public uint LastStepTime;
         public uint Serial;
         public bool IsClicked;
-
         public ushort Hits;
-
         public ushort HitsMax;
-
         public string Name;
 
         public bool IsHidden => (Flags & Flags.Hidden) != 0;
@@ -98,20 +88,78 @@ namespace ClassicUO.Game.GameObjects
             Hue = fixedColor;
         }
 
+
+        public byte HitsPercentage;
+        public RenderedText HitsTexture;
+
+        public void UpdateHits(byte perc)
+        {
+            if (perc != HitsPercentage || (HitsTexture == null || HitsTexture.IsDestroyed))
+            {
+                HitsPercentage = perc;
+
+                ushort color = 0x0044;
+
+                if (perc < 30)
+                    color = 0x0021;
+                else if (perc < 50)
+                    color = 0x0030;
+                else if (perc < 80)
+                    color = 0x0058;
+
+                HitsTexture?.Destroy();
+                HitsTexture = RenderedText.Create($"[{perc}%]", color, 3, false);
+            }
+        }
+
+        public virtual void CheckGraphicChange(sbyte animIndex = 0)
+        {
+            
+        }
+
         public override void Update(double totalMS, double frameMS)
         {
             base.Update(totalMS, frameMS);
 
             if (UseObjectHandles && !ObjectHandlesOpened)
             {
-                //NameOverheadGump gump = UIManager.GetByLocalSerial<NameOverheadGump>(Serial);
-
-                //if (gump == null)
+                // TODO: Some servers may not want to receive this (causing original client to not send it),
+                //but all servers tested (latest POL, old POL, ServUO, Outlands) do.
+                if (SerialHelper.IsMobile(Serial))
                 {
-                    UIManager.Add(new NameOverheadGump(this));
-                    ObjectHandlesOpened = true;
+                    Socket.Send(new PNameRequest(Serial));
                 }
+
+                UIManager.Add(new NameOverheadGump(this));
+
+                ObjectHandlesOpened = true;
             }
+
+
+
+            if (HitsMax > 0)
+            {
+                int hits_max = HitsMax;
+
+                hits_max = Hits * 100 / hits_max;
+
+                if (hits_max > 100)
+                    hits_max = 100;
+                else if (hits_max < 1)
+                    hits_max = 0;
+
+                UpdateHits((byte) hits_max);
+            }
+        }
+
+        public override void Destroy()
+        {
+            base.Destroy();
+
+            AnimIndex = 0;
+            LastAnimationChangeTime = 0;
+            HitsTexture?.Destroy();
+            HitsTexture = null;
         }
 
         public Item FindItem(ushort graphic, ushort hue = 0xFFFF)
@@ -122,20 +170,22 @@ namespace ClassicUO.Game.GameObjects
             {
                 var minColor = 0xFFFF;
 
-                foreach (Item i in Items)
+                for (var i = Items; i != null; i = i.Next)
                 {
-                    if (i.Graphic == graphic)
+                    Item it = (Item) i;
+
+                    if (it.Graphic == graphic)
                     {
-                        if (i.Hue < minColor)
+                        if (it.Hue < minColor)
                         {
-                            item = i;
-                            minColor = i.Hue;
+                            item = it;
+                            minColor = it.Hue;
                         }
                     }
 
-                    if (SerialHelper.IsValid(i.Container))
+                    if (SerialHelper.IsValid(it.Container))
                     {
-                        Item found = i.FindItem(graphic, hue);
+                        Item found = it.FindItem(graphic, hue);
 
                         if (found != null && found.Hue < minColor)
                         {
@@ -147,14 +197,16 @@ namespace ClassicUO.Game.GameObjects
             }
             else
             {
-                foreach (Item i in Items)
+                for (var i = Items; i != null; i = i.Next)
                 {
-                    if (i.Graphic == graphic && i.Hue == hue)
-                        item = i;
+                    Item it = (Item) i;
 
-                    if (SerialHelper.IsValid(i.Container))
+                    if (it.Graphic == graphic && it.Hue == hue)
+                        item = it;
+
+                    if (SerialHelper.IsValid(it.Container))
                     {
-                        Item found = i.FindItem(graphic, hue);
+                        Item found = it.FindItem(graphic, hue);
 
                         if (found != null)
                             item = found;
@@ -165,26 +217,102 @@ namespace ClassicUO.Game.GameObjects
             return item;
         }
 
-        public Item FindItemByLayer(Layer layer)
+        public Item GetItemByGraphic(ushort graphic, bool deepsearch = false)
         {
-            foreach (Item i in Items)
+            for (var i = Items; i != null; i = i.Next)
             {
-                if (i.Layer == layer)
-                    return i;
+                Item item = (Item) i;
+
+                if (item.Graphic == graphic)
+                    return item;
+
+                if (deepsearch && !item.IsEmpty)
+                {
+                    for (var ic = Items; ic != null; ic = ic.Next)
+                    {
+                        Item childItem = (Item) ic;
+
+                        Item res = childItem.GetItemByGraphic(graphic, deepsearch);
+
+                        if (res != null)
+                            return res;
+                    }
+                }
             }
 
             return null;
         }
 
-        public void ProcessDelta()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Item FindItemByLayer(Layer layer)
         {
-            Items.ProcessDelta();
+            for (var i = Items; i != null; i = i.Next)
+            {
+                Item it = (Item) i;
+
+                if (!it.IsDestroyed && it.Layer == layer)
+                    return it;
+            }
+
+            return null;
         }
 
-        public override void Destroy()
+        //public new void Clear()
+        //{
+        //    if (!IsEmpty)
+        //    {
+        //        var obj = Items;
+
+        //        while (obj != null)
+        //        {
+        //            var next = obj.Next;
+        //            Item it = (Item) obj;
+
+        //            it.Container = 0xFFFF_FFFF;
+        //            World.Items.Remove(it);
+
+        //            Remove(obj);
+
+        //            obj = next;
+        //        }
+        //    }
+        //}
+
+        public void ClearUnequipped()
         {
-            _equipment = null;
-            base.Destroy();
+            if (!IsEmpty)
+            {
+                LinkedObject new_first = null;
+                var obj = Items;
+
+                while (obj != null)
+                {
+                    var next = obj.Next;
+
+                    Item it = (Item) obj;
+
+                    if (it.Layer != 0)
+                    {
+                        if (new_first == null)
+                        {
+                            new_first = obj;
+                        }
+                    }
+                    else
+                    {
+                        it.Container = 0xFFFF_FFFF;
+                        World.Items.Remove(it);
+                        it.Destroy();
+                        Remove(obj);
+                    }
+                    
+                    obj = next;
+                }
+
+
+                Items = new_first;
+
+            }
         }
 
 

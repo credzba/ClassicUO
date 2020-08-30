@@ -31,7 +31,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace ClassicUO.Renderer
 {
-    internal sealed class UltimaBatcher2D : IDisposable
+    internal sealed unsafe class UltimaBatcher2D : IDisposable
     {
         private const int MAX_SPRITES = 0x800;
         private const int MAX_VERTICES = MAX_SPRITES * 4;
@@ -42,7 +42,7 @@ namespace ClassicUO.Renderer
         private readonly RasterizerState _rasterizerState;
         private readonly DynamicVertexBuffer _vertexBuffer;
         private readonly Texture2D[] _textureInfo;
-        private PositionNormalTextureColor4[] _vertexInfo;
+        private PositionNormalTextureColor4* _vertexInfo;
         private BlendState _blendState;
         private Effect _customEffect;
         private bool _started;
@@ -55,7 +55,7 @@ namespace ClassicUO.Renderer
         {
             GraphicsDevice = device;
             _textureInfo = new Texture2D[MAX_SPRITES];
-            _vertexInfo = new PositionNormalTextureColor4[MAX_SPRITES];
+            _vertexInfo = (PositionNormalTextureColor4*) Marshal.AllocHGlobal(sizeof(PositionNormalTextureColor4) * MAX_SPRITES);
             _vertexBuffer = new DynamicVertexBuffer(GraphicsDevice, typeof(PositionNormalTextureColor4), MAX_VERTICES, BufferUsage.WriteOnly);
             _indexBuffer = new IndexBuffer(GraphicsDevice, IndexElementSize.SixteenBits, MAX_INDICES, BufferUsage.WriteOnly);
             _indexBuffer.SetData(GenerateIndexArray());
@@ -144,14 +144,15 @@ namespace ClassicUO.Renderer
                 {
                     if (!spriteFont.DefaultCharacter.HasValue)
                     {
-                        throw new ArgumentException(
-                                                    "Text contains characters that cannot be" +
-                                                    " resolved by this SpriteFont.",
-                                                    "text"
-                                                   );
+                        index = characterMap.IndexOf('?');
+                        //throw new ArgumentException(
+                        //                            "Text contains characters that cannot be" +
+                        //                            " resolved by this SpriteFont.",
+                        //                            "text"
+                        //                           );
                     }
-
-                    index = characterMap.IndexOf(
+                    else 
+                        index = characterMap.IndexOf(
                                                  spriteFont.DefaultCharacter.Value
                                                 );
                 }
@@ -298,7 +299,15 @@ namespace ClassicUO.Renderer
         }
 
         [MethodImpl(256)]
-        public bool DrawSpriteLand(Texture2D texture, int x, int y, ref Rectangle rect, ref Vector3[] normals, ref Vector3 hue)
+        public bool DrawSpriteLand(Texture2D texture, 
+                                   int x, int y,
+                                   ref Rectangle rect,
+                                   ref Vector3 normal0,
+                                   ref Vector3 normal1,
+                                   ref Vector3 normal2,
+                                   ref Vector3 normal3,
+                                   
+                                   ref Vector3 hue)
         {
             EnsureSize();
 
@@ -318,10 +327,10 @@ namespace ClassicUO.Renderer
             vertex.TextureCoordinate3.Z = 0;
 
 
-            vertex.Normal0 = normals[0];
-            vertex.Normal1 = normals[1];
-            vertex.Normal3 = normals[2]; // right order!
-            vertex.Normal2 = normals[3];
+            vertex.Normal0 = normal0;
+            vertex.Normal1 = normal1;
+            vertex.Normal3 = normal2; // right order!
+            vertex.Normal2 = normal3;
 
             vertex.Position0.X = x + 22;
             vertex.Position0.Y = y - rect.Left;
@@ -1495,6 +1504,11 @@ namespace ClassicUO.Renderer
         [MethodImpl(256)]
         private bool PushSprite(Texture2D texture)
         {
+            if (texture == null || texture.IsDisposed)
+            {
+                return false;
+            }
+
             EnsureSize();
             _textureInfo[_numSprites++] = texture;
 
@@ -1521,7 +1535,6 @@ namespace ClassicUO.Renderer
             GraphicsDevice.DepthStencilState = _stencil;
             GraphicsDevice.RasterizerState = _useScissor ? _rasterizerState : RasterizerState.CullNone;
             GraphicsDevice.SamplerStates[0] = SamplerState.PointClamp;
-
             GraphicsDevice.SamplerStates[1] = SamplerState.PointClamp;
             GraphicsDevice.SamplerStates[2] = SamplerState.PointClamp;
 
@@ -1637,14 +1650,11 @@ namespace ClassicUO.Renderer
                 hint = SetDataOptions.NoOverwrite;
             }
 
-            fixed (PositionNormalTextureColor4* p = &_vertexInfo[0])
-            {
-                _vertexBuffer.SetDataPointerEXT(
-                                                pos * PositionNormalTextureColor4.SIZE_IN_BYTES,
-                                                (IntPtr) p,
-                                                len * PositionNormalTextureColor4.SIZE_IN_BYTES,
-                                                hint);
-            }
+            _vertexBuffer.SetDataPointerEXT(
+                                            pos * PositionNormalTextureColor4.SIZE_IN_BYTES,
+                                            (IntPtr) _vertexInfo,
+                                            len * PositionNormalTextureColor4.SIZE_IN_BYTES,
+                                            hint);
            
             _currentBufferPosition = pos + len;
             return pos;
@@ -1669,6 +1679,12 @@ namespace ClassicUO.Renderer
 
         public void Dispose()
         {
+            if (_vertexInfo != null)
+            {
+                Marshal.FreeHGlobal((IntPtr) _vertexInfo);
+                _vertexInfo = null;
+            }
+
             DefaultEffect?.Dispose();
             _vertexBuffer.Dispose();
             _indexBuffer.Dispose();
@@ -1687,10 +1703,6 @@ namespace ClassicUO.Renderer
                 Brighlight = Parameters["Brightlight"];
 
                 CurrentTechnique = Techniques["HueTechnique"];
-            }
-
-            protected IsometricEffect(Effect cloneSource) : base(cloneSource)
-            {
             }
 
 

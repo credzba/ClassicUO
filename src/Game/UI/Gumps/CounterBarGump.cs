@@ -348,7 +348,10 @@ namespace ClassicUO.Game.UI.Gumps
                 if (_graphic == 0)
                     return;
 
-                Item backpack = World.Player.Equipment[(int) Layer.Backpack];
+                Item backpack = World.Player.FindItemByLayer(Layer.Backpack);
+                if (backpack == null)
+                    return;
+
                 Item item = backpack.FindItem(_graphic, _hue);
 
                 if (item != null)
@@ -406,7 +409,8 @@ namespace ClassicUO.Game.UI.Gumps
                     else
                     {
                         _amount = 0;
-                        GetAmount(World.Player.Equipment[(int)Layer.Backpack], _graphic, _hue, ref _amount);
+                        GetAmount(World.Player.FindItemByLayer(Layer.Backpack), _graphic, _hue, ref _amount);
+                        GetAmount(World.Player.FindItemByLayer(Layer.Cloak), _graphic, _hue, ref _amount);
 
                         if (ProfileManager.Current.CounterBarDisplayAbbreviatedAmount)
                         {
@@ -426,8 +430,10 @@ namespace ClassicUO.Game.UI.Gumps
                 if (parent == null)
                     return;
 
-                foreach (Item item in parent.Items)
+                for (var i = parent.Items; i != null; i = i.Next)
                 {
+                    Item item = (Item) i;
+
                     GetAmount(item, graphic, hue, ref amount);
 
                     if (item.Graphic == graphic && item.Hue == hue && item.Exists)

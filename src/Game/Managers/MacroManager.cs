@@ -35,8 +35,6 @@ using ClassicUO.Interfaces;
 using ClassicUO.Network;
 using ClassicUO.Utility.Logging;
 
-using Newtonsoft.Json;
-
 using SDL2;
 
 namespace ClassicUO.Game.Managers
@@ -357,17 +355,17 @@ namespace ClassicUO.Game.Managers
                 case MacroType.Yell:
                 case MacroType.RazorMacro:
 
-                    MacroObjectString mos = (MacroObjectString) macro;
+                    string text = ((MacroObjectString)macro).Text;
 
-                    if (!string.IsNullOrEmpty(mos.Text))
+                    if (!string.IsNullOrEmpty(text))
                     {
                         MessageType type = MessageType.Regular;
                         ushort hue = ProfileManager.Current.SpeechHue;
-                        string prefix = null;
 
                         switch (macro.Code)
                         {
                             case MacroType.Emote:
+                                text = "*" + text + "*";
                                 type = MessageType.Emote;
                                 hue = ProfileManager.Current.EmoteHue;
 
@@ -385,12 +383,12 @@ namespace ClassicUO.Game.Managers
                                 break;
 
                             case MacroType.RazorMacro:
-                                prefix = ">macro ";
+                                text = ">macro " + text;
 
                                 break;
                         }
 
-                        GameActions.Say(prefix + mos.Text, hue, type);
+                        GameActions.Say(text, hue, type);
                     }
 
                     break;
@@ -417,14 +415,10 @@ namespace ClassicUO.Game.Managers
                     break;
 
                 case MacroType.Paste:
+                    string txt = Utility.StringHelper.GetClipboardText(true);
 
-                    if (SDL.SDL_HasClipboardText() != SDL.SDL_bool.SDL_FALSE)
-                    {
-                        string s = SDL.SDL_GetClipboardText();
-
-                        if (!string.IsNullOrEmpty(s))
-                            UIManager.SystemChat.TextBoxControl.Text += s;
-                    }
+                    if (txt != null)
+                        UIManager.SystemChat.TextBoxControl.AppendText(txt);
 
                     break;
 
@@ -463,7 +457,9 @@ namespace ClassicUO.Game.Managers
                                 case MacroSubType.Status:
 
                                     if (StatusGumpBase.GetStatusGump() == null)
-                                        StatusGumpBase.AddStatusGump(100, 100);
+                                    {
+                                        UIManager.Add(StatusGumpBase.AddStatusGump(100, 100));
+                                    }
 
                                     break;
 
@@ -542,7 +538,7 @@ namespace ClassicUO.Game.Managers
                                     break;
 
                                 case MacroSubType.Chat:
-                                    if (!UOChatManager.ChatIsEnabled)
+                                    if (UOChatManager.ChatIsEnabled != CHAT_STATUS.ENABLED)
                                     {
                                         break;
                                     }
@@ -562,7 +558,7 @@ namespace ClassicUO.Game.Managers
                                     break;
 
                                 case MacroSubType.Backpack:
-                                    Item backpack = World.Player.Equipment[(int) Layer.Backpack];
+                                    Item backpack = World.Player.FindItemByLayer(Layer.Backpack);
 
                                     if (backpack != null)
                                         GameActions.DoubleClick(backpack);
@@ -708,8 +704,7 @@ namespace ClassicUO.Game.Managers
 
                                             if (healthbar != null)
                                             {
-                                                StatusGumpBase.AddStatusGump(healthbar.ScreenCoordinateX, healthbar.ScreenCoordinateY);
-
+                                               UIManager.Add(StatusGumpBase.AddStatusGump(healthbar.ScreenCoordinateX, healthbar.ScreenCoordinateY));
                                             }
                                         }
                                     }
@@ -847,7 +842,7 @@ namespace ClassicUO.Game.Managers
                         {
                             totalCount += _spellsCountTable[spellType];
 
-                            if (spell < totalCount)
+                            if (spell <= totalCount)
                                 break;
                         }
 
@@ -857,7 +852,12 @@ namespace ClassicUO.Game.Managers
                             spell += spellType * 100;
 
                             if (spellType > 2)
+                            {
                                 spell += 100;
+
+                                if (spellType == 6)
+                                    spell -= 16;
+                            }
 
                             GameActions.CastSpell(spell);
                         }
@@ -893,18 +893,18 @@ namespace ClassicUO.Game.Managers
 
                 case MacroType.LastObject:
 
-                    if (World.Get(GameActions.LastObject) != null)
-                        GameActions.DoubleClick(GameActions.LastObject);
+                    if (World.Get(World.LastObject) != null)
+                        GameActions.DoubleClick(World.LastObject);
 
                     break;
 
                 case MacroType.UseItemInHand:
-                    Item itemInLeftHand = World.Player.Equipment[(int) Layer.OneHanded];
+                    Item itemInLeftHand = World.Player.FindItemByLayer(Layer.OneHanded);
                     if (itemInLeftHand != null)
                         GameActions.DoubleClick(itemInLeftHand.Serial);
                     else
                     {
-                        Item itemInRightHand = World.Player.Equipment[(int) Layer.TwoHanded];
+                        Item itemInRightHand = World.Player.FindItemByLayer(Layer.TwoHanded);
                         if (itemInRightHand != null)
                             GameActions.DoubleClick(itemInRightHand.Serial);
                     }
@@ -928,9 +928,16 @@ namespace ClassicUO.Game.Managers
                         {
                             TargetManager.TargetLast();
                         }
+                        else if (TargetManager.LastTargetInfo.IsEntity)
+                        {
+                            TargetManager.Target(TargetManager.LastTargetInfo.Serial);
+                        }
                         else
                         {
-                            TargetManager.Target(TargetManager.LastTarget);
+                            TargetManager.Target(TargetManager.LastTargetInfo.Graphic, 
+                                                 TargetManager.LastTargetInfo.X,
+                                                 TargetManager.LastTargetInfo.Y,
+                                                 TargetManager.LastTargetInfo.Z);
                         }
 
                         WaitForTargetTimer = 0;
@@ -968,24 +975,20 @@ namespace ClassicUO.Game.Managers
 
                     if (_itemsInHand[handIndex] != 0)
                     {
-                        Item item = World.Items.Get(_itemsInHand[handIndex]);
-
-                        if (item != null)
-                        {
-                            GameActions.PickUp(item, 1);
-                            gs.WearHeldItem(World.Player);
-                        }
+                        GameActions.PickUp(_itemsInHand[handIndex], 1);
+                        gs.WearHeldItem(World.Player);
 
                         _itemsInHand[handIndex] = 0;
+                        _nextTimer = Time.Ticks + 1000;
                     }
                     else
                     {
-                        Item backpack = World.Player.Equipment[(int) Layer.Backpack];
+                        Item backpack = World.Player.FindItemByLayer(Layer.Backpack);
 
                         if (backpack == null)
                             break;
 
-                        Item item = World.Player.Equipment[(int) Layer.OneHanded + handIndex];
+                        Item item = World.Player.FindItemByLayer(Layer.OneHanded + (byte) handIndex);
 
                         if (item != null)
                         {
@@ -993,6 +996,7 @@ namespace ClassicUO.Game.Managers
 
                             GameActions.PickUp(item, 1);
                             gs.MergeHeldItem(backpack);
+                            _nextTimer = Time.Ticks + 1000;
                         }
                     }
 
@@ -1012,23 +1016,26 @@ namespace ClassicUO.Game.Managers
 
                 case MacroType.TargetNext:
 
-                    if (SerialHelper.IsMobile(TargetManager.LastTarget))
+                    uint sel_obj = World.SearchObject(TargetManager.LastTargetInfo.Serial, SCAN_TYPE_OBJECT.STO_MOBILES, SCAN_MODE_OBJECT.SMO_NEXT);
+
+                    if (SerialHelper.IsValid(sel_obj))
                     {
-                        Mobile mob = World.Mobiles.Get(TargetManager.LastTarget);
+                        Entity ent = World.Get(sel_obj);
 
-                        if (mob == null)
-                            break;
+                        if (ent != null && SerialHelper.IsMobile(sel_obj) && ent.HitsMax == 0)
+                        {
+                            NetClient.Socket.Send(new PStatusRequest(sel_obj));
+                        }
 
-                        if (mob.HitsMax == 0)
-                            NetClient.Socket.Send(new PStatusRequest(mob));
-
-                        TargetManager.LastAttack = mob.Serial;
+                        TargetManager.LastTargetInfo.SetEntity(sel_obj);
+                        TargetManager.LastAttack = sel_obj;
                     }
-
+                    
                     break;
 
                 case MacroType.AttackLast:
-                    GameActions.Attack(TargetManager.LastTarget);
+                    if (TargetManager.LastTargetInfo.IsEntity)
+                        GameActions.Attack(TargetManager.LastTargetInfo.Serial);
 
                     break;
 
@@ -1088,8 +1095,8 @@ namespace ClassicUO.Game.Managers
                     break;
 
                 case MacroType.UseSelectedTarget:
-
-                    GameActions.DoubleClick(TargetManager.SelectedTarget);
+                    if (SerialHelper.IsValid(TargetManager.SelectedTarget))
+                        GameActions.DoubleClick(TargetManager.SelectedTarget);
                     break;
 
                 case MacroType.CurrentTarget:
@@ -1134,12 +1141,22 @@ namespace ClassicUO.Game.Managers
                                 WaitForTargetTimer = Time.Ticks + Constants.WAIT_FOR_TARGET_DELAY;
 
                             if (TargetManager.IsTargeting)
-                                TargetManager.Target(macro.Code == MacroType.BandageSelf ? World.Player : TargetManager.LastTarget);
+                            {
+                                if (macro.Code == MacroType.BandageSelf)
+                                    TargetManager.Target(World.Player);
+                                else if (TargetManager.LastTargetInfo.IsEntity)
+                                    TargetManager.Target(TargetManager.LastTargetInfo.Serial);
+
+                                WaitingBandageTarget = false;
+                                WaitForTargetTimer = 0;
+                            }
+                            else if (WaitForTargetTimer < Time.Ticks)
+                            {
+                                WaitingBandageTarget = false;
+                                WaitForTargetTimer = 0;
+                            }
                             else
                                 result = 1;
-
-                            WaitingBandageTarget = false;
-                            WaitForTargetTimer = 0;
                         }
                         else
                         {
@@ -1243,7 +1260,7 @@ namespace ClassicUO.Game.Managers
                     // 4 - Mobile (any mobiles)
                     int scantype = macro.SubCode - MacroSubType.Hostile;
 
-                    SetLastTarget(World.SearchObject((SCAN_TYPE_OBJECT) scantype, (SCAN_MODE_OBJECT) scanRange));
+                    SetLastTarget(World.SearchObject(TargetManager.SelectedTarget, (SCAN_TYPE_OBJECT) scantype, (SCAN_MODE_OBJECT) scanRange));
 
                     break;
 
@@ -1364,6 +1381,28 @@ namespace ClassicUO.Game.Managers
                         }
                     }
                     break;
+
+                case MacroType.ToggleDrawRoofs:
+                    ProfileManager.Current.DrawRoofs = !ProfileManager.Current.DrawRoofs;
+
+                    break;
+
+                case MacroType.ToggleTreeStumps:
+                    StaticFilters.CleanTreeTextures();
+                    ProfileManager.Current.TreeToStumps = !ProfileManager.Current.TreeToStumps;
+
+                    break;
+
+                case MacroType.ToggleVegetation:
+                    ProfileManager.Current.HideVegetation = !ProfileManager.Current.HideVegetation;
+
+                    break;
+
+                case MacroType.ToggleCaveTiles:
+                    StaticFilters.CleanCaveTextures();
+                    ProfileManager.Current.EnableCaveBorder = !ProfileManager.Current.EnableCaveBorder;
+
+                    break;
             }
 
 
@@ -1381,11 +1420,8 @@ namespace ClassicUO.Game.Managers
                     if (ent != null)
                     {
                         GameActions.MessageOverhead($"Target: {ent.Name}", Notoriety.GetHue(((Mobile) ent).NotorietyFlag), World.Player);
-                        UIManager.RemoveTargetLineGump(TargetManager.LastTarget);
-                        UIManager.RemoveTargetLineGump(TargetManager.LastAttack);
-                        TargetManager.SelectedTarget = TargetManager.LastTarget = serial;
-                        UIManager.SetTargetLineGump(serial);
-
+                        TargetManager.SelectedTarget = serial;
+                        TargetManager.LastTargetInfo.SetEntity(serial);
                         return;
                     }
                 }
@@ -1394,10 +1430,8 @@ namespace ClassicUO.Game.Managers
                     if (ent != null)
                     {
                         GameActions.MessageOverhead($"Target: {ent.Name}", 992, World.Player);
-                        UIManager.RemoveTargetLineGump(TargetManager.LastTarget);
-                        UIManager.RemoveTargetLineGump(TargetManager.LastAttack);
-                        TargetManager.SelectedTarget = TargetManager.LastTarget = serial;
-
+                        TargetManager.SelectedTarget = serial;
+                        TargetManager.LastTargetInfo.SetEntity(serial);
                         return;
                     }
                 }
@@ -1409,10 +1443,8 @@ namespace ClassicUO.Game.Managers
 
 
 
-    [JsonObject]
     internal class Macro : IEquatable<Macro>, INode<Macro>
     {
-        [JsonConstructor]
         public Macro(string name, SDL.SDL_Keycode key, bool alt, bool ctrl, bool shift) : this(name)
         {
             Key = key;
@@ -1426,14 +1458,14 @@ namespace ClassicUO.Game.Managers
             Name = name;
         }
 
-        [JsonProperty] public string Name { get; }
+        public string Name { get; }
 
-        [JsonProperty] public SDL.SDL_Keycode Key { get; set; }
-        [JsonProperty] public bool Alt { get; set; }
-        [JsonProperty] public bool Ctrl { get; set; }
-        [JsonProperty] public bool Shift { get; set; }
+        public SDL.SDL_Keycode Key { get; set; }
+        public bool Alt { get; set; }
+        public bool Ctrl { get; set; } 
+        public bool Shift { get; set; }
 
-        [JsonProperty] public MacroObject FirstNode { get; set; }
+        public MacroObject FirstNode { get; set; }
 
         public bool Equals(Macro other)
         {
@@ -1443,8 +1475,8 @@ namespace ClassicUO.Game.Managers
             return Key == other.Key && Alt == other.Alt && Ctrl == other.Ctrl && Shift == other.Shift && Name == other.Name;
         }
 
-        [JsonIgnore] public Macro Left { get; set; }
-        [JsonIgnore] public Macro Right { get; set; }
+        public Macro Left { get; set; }
+        public Macro Right { get; set; }
 
         private void AppendMacro(MacroObject item)
         {
@@ -1653,10 +1685,8 @@ namespace ClassicUO.Game.Managers
     }
 
 
-    [JsonObject]
     internal class MacroObject : INode<MacroObject>
     {
-        [JsonConstructor]
         public MacroObject(MacroType code, MacroSubType sub)
         {
             Code = code;
@@ -1710,12 +1740,12 @@ namespace ClassicUO.Game.Managers
             }
         }
 
-        [JsonProperty] public MacroType Code { get; set; }
-        [JsonProperty] public MacroSubType SubCode { get; set; }
-        [JsonProperty] public sbyte SubMenuType { get; set; }
+        public MacroType Code { get; set; }
+        public MacroSubType SubCode { get; set; }
+        public sbyte SubMenuType { get; set; }
 
-        [JsonIgnore] public MacroObject Left { get; set; }
-        [JsonIgnore] public MacroObject Right { get; set; }
+        public MacroObject Left { get; set; }
+        public MacroObject Right { get; set; }
 
         public virtual bool HasString()
         {
@@ -1723,16 +1753,14 @@ namespace ClassicUO.Game.Managers
         }
     }
 
-    [JsonObject]
     internal class MacroObjectString : MacroObject
     {
-        [JsonConstructor]
         public MacroObjectString(MacroType code, MacroSubType sub, string str = "") : base(code, sub)
         {
             Text = str;
         }
 
-        [JsonProperty] public string Text { get; set; }
+        public string Text { get; set; }
 
         public override bool HasString()
         {
@@ -1813,6 +1841,10 @@ namespace ClassicUO.Game.Managers
         UsePotion,
         CloseAllHealthBars,
         RazorMacro,
+        ToggleDrawRoofs,
+        ToggleTreeStumps,
+        ToggleVegetation,
+        ToggleCaveTiles,
     }
 
     internal enum MacroSubType

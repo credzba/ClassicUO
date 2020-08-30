@@ -98,12 +98,12 @@ namespace ClassicUO.Game.UI.Controls
         {
             Rectangle scissor = ScissorStack.CalculateScissors(Matrix.Identity, x, y, Width, Height);
 
-            if (ScissorStack.PushScissors(scissor))
+            if (ScissorStack.PushScissors(batcher.GraphicsDevice, scissor))
             {
                 batcher.EnableScissorTest(true);
                 base.Draw(batcher, x, y);
                 batcher.EnableScissorTest(false);
-                ScissorStack.PopScissors();
+                ScissorStack.PopScissors(batcher.GraphicsDevice);
             }
 
             return true; 
@@ -112,6 +112,9 @@ namespace ClassicUO.Game.UI.Controls
 
         protected override void OnMouseUp(int x, int y, MouseButtonType button)
         {
+            if (button != MouseButtonType.Left)
+                return;
+
             OnBeforeContextMenu?.Invoke(this, null);
 
             var contextMenu = new ComboboxContextMenu(this, _items, Width, _maxHeight)
