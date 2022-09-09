@@ -48,6 +48,7 @@ namespace ClassicUO.Game.UI.Gumps
         protected const ushort LOCK_UP_GRAPHIC = 0x0984;
         protected const ushort LOCK_DOWN_GRAPHIC = 0x0986;
         protected const ushort LOCK_LOCKED_GRAPHIC = 0x082C;
+        protected readonly GumpPicWithWidth[] _fillBars = new GumpPicWithWidth[3];
 
 
         protected StatusGumpBase() : base(0, 0)
@@ -209,6 +210,81 @@ namespace ClassicUO.Game.UI.Gumps
             }
         }
 
+        protected void UpdateStatusFillBar(FillStats id, int current, int max)
+        {
+            ushort gumpId = 0x0806;
+
+            if (id == FillStats.Hits)
+            {
+                if (World.Player.IsPoisoned)
+                {
+                    gumpId = 0x0808;
+                }
+                else if (World.Player.IsYellowHits)
+                {
+                    gumpId = 0x0809;
+                }
+            }
+
+            if (max > 0)
+            {
+                _fillBars[(int)id].Graphic = gumpId;
+
+                _fillBars[(int)id].Percent = CalculatePercents(max, current, 109);
+            }
+        }
+
+        // TODO: move to base class?
+        protected void AddStatTextLabel
+        (
+            string text,
+            MobileStats stat,
+            int x,
+            int y,
+            int maxWidth = 0,
+            ushort hue = 0x0386,
+            TEXT_ALIGN_TYPE alignment = TEXT_ALIGN_TYPE.TS_LEFT
+        )
+        {
+            Label label = new Label
+            (
+                text,
+                false,
+                hue,
+                maxWidth,
+                align: alignment,
+                font: 1
+            )
+            {
+                X = x - 5,
+                Y = y
+            };
+
+            _labels[(int)stat] = label;
+            Add(label);
+        }
+
+        protected static int CalculatePercents(int max, int current, int maxValue)
+        {
+            if (max > 0)
+            {
+                max = current * 100 / max;
+
+                if (max > 100)
+                {
+                    max = 100;
+                }
+
+                if (max > 1)
+                {
+                    max = maxValue * max / 100;
+                }
+            }
+
+            return max;
+        }
+
+
         protected enum ButtonType
         {
             BuffIcon,
@@ -221,6 +297,41 @@ namespace ClassicUO.Game.UI.Gumps
             Dex,
             Int
         }
+        protected enum MobileStats
+        {
+            Name,
+            Strength,
+            Dexterity,
+            Intelligence,
+            HealthCurrent,
+            HealthMax,
+            StaminaCurrent,
+            StaminaMax,
+            ManaCurrent,
+            ManaMax,
+            WeightCurrent,
+            WeightMax,
+            Followers,
+            FollowersMax,
+            Gold,
+            AR,
+            Damage,
+            HungerSatisfactionMinutes,
+            MurderCount,
+            MurderCountDecayHours,
+            CriminalTimerSeconds,
+            PvpCooldownSeconds,
+            BandageTimerSeconds,
+            Max
+        }
+
+        protected enum FillStats
+        {
+            Hits,
+            Mana,
+            Stam
+        }
+
     }
 
     internal class StatusGumpOld : StatusGumpBase
@@ -623,6 +734,48 @@ namespace ClassicUO.Game.UI.Gumps
                     );
                 }
 
+                // Sliders 
+                ushort gumpIdHp = 0x0806;
+                const int SliderStart = 34;
+                Add(new GumpPic(SliderStart, 12, 0x0805, 0)); // Health bar
+                Add(new GumpPic(SliderStart, 25, 0x0805, 0)); // Mana bar
+                Add(new GumpPic(SliderStart, 38, 0x0805, 0)); // Stamina bar
+                _fillBars[(int)FillStats.Hits] = new GumpPicWithWidth
+                (
+                    SliderStart,
+                    12,
+                    gumpIdHp,
+                    0,
+                    0
+                );
+
+                _fillBars[(int)FillStats.Mana] = new GumpPicWithWidth
+                (
+                    SliderStart,
+                    25,
+                    0x0806,
+                    0,
+                    0
+                );
+
+                _fillBars[(int)FillStats.Stam] = new GumpPicWithWidth
+                (
+                    SliderStart,
+                    38,
+                    0x0806,
+                    0,
+                    0
+                );
+
+                Add(_fillBars[(int)FillStats.Hits]);
+                Add(_fillBars[(int)FillStats.Mana]);
+                Add(_fillBars[(int)FillStats.Stam]);
+
+                UpdateStatusFillBar(FillStats.Hits, World.Player.Hits, World.Player.HitsMax);
+                UpdateStatusFillBar(FillStats.Mana, World.Player.Mana, World.Player.ManaMax);
+                UpdateStatusFillBar(FillStats.Stam, World.Player.Stamina, World.Player.StaminaMax);
+
+                // end sliders 
                 Lock status = World.Player.StrLock;
                 xOffset = Client.UseUOPGumps ? 28 : 40;
                 ushort gumpID = GetStatLockGraphic(status);
@@ -1401,6 +1554,10 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 _refreshTime = (long)Time.Ticks + 250;
 
+                UpdateStatusFillBar(FillStats.Hits, World.Player.Hits, World.Player.HitsMax);
+                UpdateStatusFillBar(FillStats.Mana, World.Player.Mana, World.Player.ManaMax);
+                UpdateStatusFillBar(FillStats.Stam, World.Player.Stamina, World.Player.StaminaMax);
+
                 _labels[(int) MobileStats.Name].Text = !string.IsNullOrEmpty(World.Player.Name) ? World.Player.Name : string.Empty;
 
                 if (Client.UseUOPGumps)
@@ -1543,9 +1700,7 @@ namespace ClassicUO.Game.UI.Gumps
             _labels = new Label[(int) MobileStats.Max];
 
             Add(new GumpPic(0, 0, 0x2A6C, 0));
-            Add(new GumpPic(34, 12, 0x0805, 0)); // Health bar
-            Add(new GumpPic(34, 25, 0x0805, 0)); // Mana bar
-            Add(new GumpPic(34, 38, 0x0805, 0)); // Stamina bar
+
 
             if (Client.Version >= ClientVersion.CV_5020)
             {
@@ -1981,114 +2136,8 @@ namespace ClassicUO.Game.UI.Gumps
             }
         }
 
-        private static int CalculatePercents(int max, int current, int maxValue)
-        {
-            if (max > 0)
-            {
-                max = current * 100 / max;
-
-                if (max > 100)
-                {
-                    max = 100;
-                }
-
-                if (max > 1)
-                {
-                    max = maxValue * max / 100;
-                }
-            }
-
-            return max;
-        }
-
-        private void UpdateStatusFillBar(FillStats id, int current, int max)
-        {
-            ushort gumpId = 0x0806;
-
-            if (id == FillStats.Hits)
-            {
-                if (World.Player.IsPoisoned)
-                {
-                    gumpId = 0x0808;
-                }
-                else if (World.Player.IsYellowHits)
-                {
-                    gumpId = 0x0809;
-                }
-            }
-
-            if (max > 0)
-            {
-                _fillBars[(int) id].Graphic = gumpId;
-
-                _fillBars[(int) id].Percent = CalculatePercents(max, current, 109);
-            }
-        }
-
-        // TODO: move to base class?
-        private void AddStatTextLabel
-        (
-            string text,
-            MobileStats stat,
-            int x,
-            int y,
-            int maxWidth = 0,
-            ushort hue = 0x0386,
-            TEXT_ALIGN_TYPE alignment = TEXT_ALIGN_TYPE.TS_LEFT
-        )
-        {
-            Label label = new Label
-            (
-                text,
-                false,
-                hue,
-                maxWidth,
-                align: alignment,
-                font: 1
-            )
-            {
-                X = x - 5,
-                Y = y
-            };
-
-            _labels[(int) stat] = label;
-            Add(label);
-        }
 
 
-        private enum MobileStats
-        {
-            Name,
-            Strength,
-            Dexterity,
-            Intelligence,
-            HealthCurrent,
-            HealthMax,
-            StaminaCurrent,
-            StaminaMax,
-            ManaCurrent,
-            ManaMax,
-            WeightCurrent,
-            WeightMax,
-            Followers,
-            FollowersMax,
-            Gold,
-            AR,
-            Damage,
-            HungerSatisfactionMinutes,
-            MurderCount,
-            MurderCountDecayHours,
-            CriminalTimerSeconds,
-            PvpCooldownSeconds,
-            BandageTimerSeconds,
-            Max
-        }
 
-        private enum FillStats
-        {
-            Hits,
-            Mana,
-            Stam
-        }
     }
 }
