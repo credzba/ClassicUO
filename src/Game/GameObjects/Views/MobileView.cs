@@ -1105,7 +1105,7 @@ namespace ClassicUO.Game.GameObjects
                     Item pants = mobile.FindItemByLayer(Layer.Pants);
                     Item robe;
 
-                    if (mobile.FindItemByLayer(Layer.Legs) != null || pants != null && (pants.Graphic == 0x1411 /*|| pants.Graphic == 0x141A*/))
+                    if ( /*mobile.FindItemByLayer(Layer.Legs) != null || */ pants != null && (pants.Graphic == 0x1411 || pants.Graphic == 0xAFF1))
                     {
                         return true;
                     }
@@ -1126,7 +1126,7 @@ namespace ClassicUO.Game.GameObjects
                     robe = mobile.FindItemByLayer(Layer.Robe);
                     pants = mobile.FindItemByLayer(Layer.Pants);
 
-                    if (mobile.FindItemByLayer(Layer.Legs) != null || robe != null && robe.Graphic == 0x0504)
+                    if (/* mobile.FindItemByLayer(Layer.Legs) != null || */ robe != null && robe.Graphic == 0x0504)
                     {
                         return true;
                     }
