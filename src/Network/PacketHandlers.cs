@@ -742,7 +742,8 @@ namespace ClassicUO.Network
         }
 
         private static void EnterWorld(ref StackDataReader p)
-        {         
+        {
+
             uint serial = p.ReadUInt32BE();
 
             World.CreatePlayer(serial);

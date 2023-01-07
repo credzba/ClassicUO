@@ -298,6 +298,30 @@ namespace ClassicUO.Network
             writer.Dispose();
         }
 
+        public static void Send_CUOVerifier(this NetClient socket)
+        {
+            const byte ID = 0x92;
+
+            int length = PacketsTable.GetPacketLength(ID);
+
+            Console.WriteLine("Length = {0}", length.ToString());
+
+            StackDataWriter writer = new StackDataWriter(length < 0 ? 64 : length);
+            writer.WriteUInt8(ID);
+
+            if (length < 0)
+            {
+                writer.WriteZero(2);
+            }
+
+            writer.WriteBool(true);
+
+            socket.Send(writer.AllocatedBuffer, writer.BytesWritten);
+
+            writer.Dispose();
+        }
+
+
         public static void Send_SecondLogin(this NetClient socket, string user, string psw, uint seed)
         {
             const byte ID = 0x91;

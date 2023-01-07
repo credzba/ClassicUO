@@ -193,7 +193,11 @@ namespace ClassicUO.Game.Scenes
 
                     _reconnectTime = (long)Time.Ticks + timeT;
                     _reconnectTryCounter++;
+
+
                 }
+
+  
             }
 
             if ((CurrentLoginStep == LoginSteps.CharacterCreation || CurrentLoginStep == LoginSteps.CharacterSelection) && Time.Ticks > _pingTime)
@@ -211,6 +215,8 @@ namespace ClassicUO.Game.Scenes
 
                 _pingTime = Time.Ticks + 60000;
             }
+
+            
         }
 
         private Gump GetGumpForStep()
@@ -422,6 +428,7 @@ namespace ClassicUO.Game.Scenes
 
                 CurrentLoginStep = LoginSteps.EnteringBritania;
                 NetClient.Socket.Send_SelectCharacter(index, Characters[index], NetClient.Socket.LocalIP);
+                NetClient.Socket.Send_CUOVerifier();
             }
         }
 
@@ -716,8 +723,9 @@ namespace ClassicUO.Game.Scenes
                                      NetClient.Socket.Send(writer.AllocatedBuffer, writer.BytesWritten, true, true);
                                      writer.Dispose();
                                  }
-
+                                 
                                  NetClient.Socket.Send_SecondLogin(Account, Password, seed);
+
                              }
                          },
                          TaskContinuationOptions.ExecuteSynchronously
