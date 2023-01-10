@@ -304,8 +304,6 @@ namespace ClassicUO.Network
 
             int length = PacketsTable.GetPacketLength(ID);
 
-            Console.WriteLine("Length = {0}", length.ToString());
-
             StackDataWriter writer = new StackDataWriter(length < 0 ? 64 : length);
             writer.WriteUInt8(ID);
 
