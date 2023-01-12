@@ -557,11 +557,11 @@ namespace ClassicUO.Game.UI.Gumps
                             {
                                 Item equipment = container.FindItemByLayer((Layer)Client.Game.GameCursor.ItemHold.ItemData.Layer);
 
-                                if (equipment == null)
+                                if (equipment == null || equipment.Layer == Layer.TwoHanded)
                                 {
                                     GameActions.Equip(LocalSerial != World.Player ? container : World.Player);
                                     Mouse.CancelDoubleClick = true;
-                                }
+                                }    
                             }
                         }
                     }

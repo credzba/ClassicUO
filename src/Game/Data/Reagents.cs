@@ -57,6 +57,12 @@ namespace ClassicUO.Game.Data
         DragonsBlood,
         DemonBone,
 
+        Pumice,
+        PetrifiedWood,
+        SpringWater,
+        FenMoss,
+        DestroyingAngel,
+
         // More extras usable as reagents
         Blackmoor,
         Bloodspawn,

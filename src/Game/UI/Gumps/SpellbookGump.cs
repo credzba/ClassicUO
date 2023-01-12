@@ -150,6 +150,8 @@ namespace ClassicUO.Game.UI.Gumps
                 out int dictionaryPagesCount
             );
 
+            Console.WriteLine("The type is {0}", _spellBookType.ToString());
+
             Add(_picBase = new GumpPic(0, 0, bookGraphic, 0));
             _picBase.MouseDoubleClick += _picBase_MouseDoubleClick;
 
@@ -424,12 +426,14 @@ namespace ClassicUO.Game.UI.Gumps
 
                                                 _dataBox.Add(text, page);
 
+
                                                 if (toolTipCliloc > 0)
                                                 {
                                                     string tooltip = ClilocLoader.Instance.GetString(toolTipCliloc + id);
 
                                                     icon.SetTooltip(tooltip, 250);
                                                 }
+
                                             }
                                         }
                                     }
@@ -743,7 +747,15 @@ namespace ClassicUO.Game.UI.Gumps
                     GetSpellToolTip(out toolTipCliloc);
                 }
 
+                //23082
+
                 var spellDef = GetSpellDefinition(iconSerial);
+                /*
+                if (_spellBookType == SpellBookType.Druidic)
+                {
+                    iconGraphic = (ushort) spellDef.GumpIconID;
+                }
+                */
                 HueGumpPic icon = new HueGumpPic
                 (
                     iconX,
@@ -756,14 +768,42 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     X = iconX, Y = 40, LocalSerial = iconSerial
                 };
+                /*
+                if (_spellBookType == SpellBookType.Druidic)
+                {
+                    string spelldesc = "I am Bender, please insert girder.";
+                    if (spellDef.ID == 302)
+                        spelldesc = "A quick-growing wall of foliage springs up at the bidding of the Druid.";
+                    else if (spellDef.ID == 303)
+                        spelldesc = "Increases both the strength and the dexterity of the Druid.";
+                    else if (spellDef.ID == 304)
+                        spelldesc = "Summons a pack of beasts to fight for the Druid. Spell length increases with skill.";
+                    else if (spellDef.ID == 305)
+                        spelldesc = "Creates a magical spring that heals the Druid and their party.";
+                    else if (spellDef.ID == 306)
+                        spelldesc = "Summons roots from the ground to entangle a single target.";
+                    else if (spellDef.ID == 307)
+                        spelldesc = "Creates a ring of thorns preventing an enemy from moving.";
 
 
+
+
+                    icon.SetTooltip(spelldesc, 250);
+                }
+                else
+                {
+                    if (toolTipCliloc > 0)
+                    {
+                        string tooltip = ClilocLoader.Instance.GetString(toolTipCliloc + i);
+                        icon.SetTooltip(tooltip, 250);
+                    }
+                }
+                */
                 if (toolTipCliloc > 0)
                 {
                     string tooltip = ClilocLoader.Instance.GetString(toolTipCliloc + i);
                     icon.SetTooltip(tooltip, 250);
                 }
-
                 icon.MouseDoubleClick += OnIconDoubleClick;
                 icon.DragBegin += OnIconDragBegin;
 
@@ -938,6 +978,11 @@ namespace ClassicUO.Game.UI.Gumps
                     def = SpellsMastery.GetSpell(idx);
 
                     break;
+
+                case SpellBookType.Druidic:
+                    def = SpellsDruid.GetSpell(idx);
+
+                    break;
             }
 
             return def;
@@ -1020,6 +1065,12 @@ namespace ClassicUO.Game.UI.Gumps
                     iconStartGraphic = 0x945;
 
                     break;
+                case SpellBookType.Druidic:
+                    maxSpellsCount = SpellsDruid.MaxSpellCount;
+                    bookGraphic = 0x2B2F;
+                    minimizedGraphic = 0x2B2D;
+                    iconStartGraphic = 0x5A2A;
+                    break;
             }
 
             spellsOnPage = Math.Min(maxSpellsCount >> 1, 8);
@@ -1072,6 +1123,11 @@ namespace ClassicUO.Game.UI.Gumps
 
                 case SpellBookType.Mastery:
                     offset = 0;
+
+                    break;
+
+                case SpellBookType.Druidic:
+                    offset = 1136632;
 
                     break;
 
@@ -1145,6 +1201,14 @@ namespace ClassicUO.Game.UI.Gumps
 
                 case SpellBookType.Mastery:
                     def = SpellsMastery.GetSpell(offset + 1);
+                    name = def.Name;
+                    abbreviature = def.PowerWords;
+                    reagents = def.CreateReagentListString("\n");
+
+                    break;
+
+                case SpellBookType.Druidic:
+                    def = SpellsDruid.GetSpell(offset + 1);
                     name = def.Name;
                     abbreviature = def.PowerWords;
                     reagents = def.CreateReagentListString("\n");
@@ -1239,6 +1303,13 @@ namespace ClassicUO.Game.UI.Gumps
                     }
 
                     return;
+
+                case SpellBookType.Druidic:
+                    def = SpellsDruid.GetSpell(offset + 1);
+                    manaCost = def.ManaCost;
+                    minSkill = def.MinSkill;
+
+                    break;
             }
 
             text = string.Format(ResGumps.ManaCost0MinSkill1, manaCost, minSkill);
@@ -1368,6 +1439,15 @@ namespace ClassicUO.Game.UI.Gumps
                     _spellBookType = SpellBookType.Mastery;
 
                     break;
+                case 0xCE3A:
+                    _spellBookType = SpellBookType.Druidic;
+
+                    break;
+                case 0xCE3B:
+                    _spellBookType = SpellBookType.Cleric;
+
+                    break;
+
             }
         }
 

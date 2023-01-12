@@ -42,6 +42,8 @@ namespace ClassicUO.Game.Data
         Spellweaving,
         Mysticism,
         Mastery,
+        Druidic,
+        Cleric,
         Unknown = 0xFF
     }
 
