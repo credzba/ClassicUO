@@ -329,7 +329,7 @@ namespace ClassicUO.Game.UI.Gumps
             {
                 for (int j = 0; j < 2; j++)
                 {
-                    if (page == 1 && _spellBookType == SpellBookType.Chivalry)
+                    if (page == 1 && (_spellBookType == SpellBookType.Chivalry || _spellBookType == SpellBookType.Cleric))
                     {
                         Label label = new Label(ResGumps.TithingPointsAvailable + World.Player.TithingPoints, false, 0x0288, font: 6)
                         {
@@ -983,6 +983,10 @@ namespace ClassicUO.Game.UI.Gumps
                     def = SpellsDruid.GetSpell(idx);
 
                     break;
+                case SpellBookType.Cleric:
+                    def = SpellsCleric.GetSpell(idx);
+
+                    break;
             }
 
             return def;
@@ -1071,6 +1075,12 @@ namespace ClassicUO.Game.UI.Gumps
                     minimizedGraphic = 0x2B2D;
                     iconStartGraphic = 0x5A2A;
                     break;
+                case SpellBookType.Cleric:
+                    maxSpellsCount = SpellsCleric.MaxSpellCount;
+                    bookGraphic = 0x2B0E;
+                    minimizedGraphic = 0x2B0C;
+                    iconStartGraphic = 0x59EC;
+                    break;
             }
 
             spellsOnPage = Math.Min(maxSpellsCount >> 1, 8);
@@ -1130,7 +1140,10 @@ namespace ClassicUO.Game.UI.Gumps
                     offset = 1136632;
 
                     break;
+                case SpellBookType.Cleric:
+                    offset = 1136654;
 
+                    break;
                 default:
                     offset = 0;
 
@@ -1214,6 +1227,14 @@ namespace ClassicUO.Game.UI.Gumps
                     reagents = def.CreateReagentListString("\n");
 
                     break;
+
+                case SpellBookType.Cleric:
+                    def = SpellsCleric.GetSpell(offset + 1);
+                    name = def.Name;
+                    abbreviature = def.PowerWords;
+                    reagents = string.Empty;
+
+                    break;
             }
         }
 
@@ -1242,11 +1263,11 @@ namespace ClassicUO.Game.UI.Gumps
             y = 162;
             int manaCost = 0;
             int minSkill = 0;
-
+            SpellDefinition def = null;
             switch (_spellBookType)
             {
                 case SpellBookType.Necromancy:
-                    SpellDefinition def = SpellsNecromancy.GetSpell(offset + 1);
+                    def = SpellsNecromancy.GetSpell(offset + 1);
                     manaCost = def.ManaCost;
                     minSkill = def.MinSkill;
 
@@ -1301,7 +1322,6 @@ namespace ClassicUO.Game.UI.Gumps
                     {
                         text = string.Format(ResGumps.ManaCost0MinSkill1, manaCost, minSkill);
                     }
-
                     return;
 
                 case SpellBookType.Druidic:
@@ -1310,9 +1330,22 @@ namespace ClassicUO.Game.UI.Gumps
                     minSkill = def.MinSkill;
 
                     break;
+
+                case SpellBookType.Cleric:
+                    def = SpellsCleric.GetSpell(offset + 1);
+                    manaCost = def.ManaCost;
+                    minSkill = def.MinSkill;
+
+                    break;
             }
 
-            text = string.Format(ResGumps.ManaCost0MinSkill1, manaCost, minSkill);
+            if (def.TithingCost > 0)
+            {
+                y = 148;
+                text = string.Format(ResGumps.Tithing0Mana1MinSkill2, def.TithingCost, manaCost, minSkill);
+            }
+            else
+                text = string.Format(ResGumps.ManaCost0MinSkill1, manaCost, minSkill);
         }
 
         private void SetActivePage(int page)

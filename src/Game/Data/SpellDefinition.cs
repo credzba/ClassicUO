@@ -284,6 +284,11 @@ namespace ClassicUO.Game.Data
                 return SpellsDruid.GetSpell((fullidx - 1) % 100);
             }
 
+            if (fullidx < 400)
+            {
+                return SpellsCleric.GetSpell((fullidx - 41) % 100);
+            }
+
             if (fullidx < 500)
             {
                 return SpellsBushido.GetSpell(fullidx % 100);
@@ -393,9 +398,13 @@ namespace ClassicUO.Game.Data
             {
                 SpellsChivalry.SetSpell(id, in sd);
             }
-            else if (fullidx < 350)
+            else if (fullidx < 340)
             {
                 SpellsDruid.SetSpell(id - 1, in sd);
+            }
+            else if (fullidx < 400)
+            {
+                SpellsCleric.SetSpell(id - 41, in sd);
             }
             else if (fullidx < 500)
             {

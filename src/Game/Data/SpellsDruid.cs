@@ -41,8 +41,6 @@ namespace ClassicUO.Game.Data
     {
         private static readonly Dictionary<int, SpellDefinition> _spellsDict;
 
-        private static string[] _spRegsChars;
-
         static SpellsDruid()
         {
             _spellsDict = new Dictionary<int, SpellDefinition>
@@ -148,6 +146,8 @@ namespace ClassicUO.Game.Data
                         308,
                         0x5A09,
                         "Ess Ohm En Sec Tia",
+                        30,
+                        20,
                         TargetType.Harmful,
                         Reagents.FenMoss,
                         Reagents.Pumice,
@@ -162,6 +162,8 @@ namespace ClassicUO.Game.Data
                         309,
                         0x5A0B,
                         "Vauk Ohm En Tia Crur",
+                        75,
+                        94,
                         TargetType.Harmful,
                         Reagents.FertileDirt,
                         Reagents.Pumice
