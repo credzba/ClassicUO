@@ -331,7 +331,7 @@ namespace ClassicUO.IO.Resources
                     }
                 }
             }
-        
+
             ProcessEquipConvDef();
             ProcessBodyDef();
             ProcessCorpseDef();
@@ -865,6 +865,8 @@ namespace ClassicUO.IO.Resources
                             {
                                 _dataIndex[animID].MountedHeightOffset = 9;
                             }
+                            else if (animID == 0x0590)
+                                _dataIndex[animID].MountedHeightOffset = 10;
                         }
                     }
 
