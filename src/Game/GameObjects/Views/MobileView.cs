@@ -1189,7 +1189,7 @@ namespace ClassicUO.Game.GameObjects
                 case Layer.Arms:
                     robe = mobile.FindItemByLayer(Layer.Robe);
 
-                    return robe != null && robe.Graphic != 0 && robe.Graphic != 0x9985 && robe.Graphic != 0x9986 && robe.Graphic != 0xA412;
+                    return robe != null && robe.Graphic != 0 && robe.Graphic != 0x9985 && robe.Graphic != 0x9986 && robe.Graphic != 0xA412 && robe.Graphic != 0xA2CA && robe.Graphic != 0xA2CB;
 
                 case Layer.Helmet:
                 case Layer.Hair:

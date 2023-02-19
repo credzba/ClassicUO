@@ -1936,7 +1936,825 @@ namespace ClassicUO.Game.Data
                 0,
                 0,
                 false
-            ) // EAST ONLY
+            ), // EAST ONLY
+            new SittingInfoData
+            (
+                0xC0B6,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xC0B9,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xC0B7,
+                2,
+                2,
+                2,
+                2,
+                6,
+                6,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xC0B8,
+                2,
+                2,
+                2,
+                2,
+                6,
+                6,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xC0B5,
+                6,
+                6,
+                6,
+                6,
+                -8,
+                8,
+                true
+            ),
+            new SittingInfoData
+            (
+                0xC0B4,
+                0,
+                0,
+                0,
+                0,
+                0,
+                4,
+                true
+            ),
+            new SittingInfoData
+            (
+                0xC0BB,
+                6,
+                6,
+                6,
+                6,
+                -8,
+                8,
+                true
+            ),
+            new SittingInfoData
+            (
+                0xC0BA,
+                0,
+                0,
+                0,
+                0,
+                0,
+                4,
+                true
+            ),
+            new SittingInfoData
+            (
+                0xCE3C,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xCE43,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xCE46,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xCE50,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xCE53,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xCE3D,
+                2,
+                2,
+                2,
+                2,
+                6,
+                6,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xCE3E,
+                2,
+                2,
+                2,
+                2,
+                6,
+                6,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xCE3F,
+                2,
+                2,
+                2,
+                2,
+                6,
+                6,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xCE42,
+                2,
+                2,
+                2,
+                2,
+                6,
+                6,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xCE47,
+                2,
+                2,
+                2,
+                2,
+                6,
+                6,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xCE4D,
+                2,
+                2,
+                2,
+                2,
+                0,
+                6,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xCE52,
+                2,
+                2,
+                2,
+                2,
+                6,
+                6,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xCE49,
+                6,
+                6,
+                6,
+                6,
+                -8,
+                8,
+                true
+            ),
+            new SittingInfoData
+            (
+                0xCE55,
+                6,
+                6,
+                6,
+                6,
+                -8,
+                8,
+                true
+            ),
+            new SittingInfoData
+            (
+                0xCE54,
+                0,
+                0,
+                0,
+                0,
+                0,
+                4,
+                true
+            ),
+            new SittingInfoData
+            (
+                0xCE48,
+                0,
+                0,
+                0,
+                0,
+                0,
+                4,
+                true
+            ),
+            new SittingInfoData
+            (
+                0xCE40,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xAF53,
+                0,
+                -1,
+                4,
+                -1,
+                3,
+                10,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xAF54,
+                0,
+                -1,
+                4,
+                -1,
+                3,
+                10,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xAF55,
+                0,
+                -1,
+                4,
+                -1,
+                3,
+                10,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xAF56,
+                -1,
+                2,
+                -1,
+                6,
+                3,
+                14,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xAF57,
+                -1,
+                2,
+                -1,
+                6,
+                3,
+                14,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xAF58,
+                -1,
+                2,
+                -1,
+                6,
+                3,
+                14,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xBDE1,
+                0,
+                -1,
+                4,
+                -1,
+                3,
+                10,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xBDE2,
+                0,
+                -1,
+                4,
+                -1,
+                3,
+                10,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xBDE3,
+                0,
+                -1,
+                4,
+                -1,
+                3,
+                10,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xBDDE,
+                -1,
+                2,
+                -1,
+                6,
+                3,
+                14,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xBDDF,
+                -1,
+                2,
+                -1,
+                6,
+                3,
+                14,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xBDE0,
+                -1,
+                2,
+                -1,
+                6,
+                3,
+                14,
+                false
+            ),
+
+            new SittingInfoData
+            (
+                0xD308,
+                0,
+                -1,
+                4,
+                -1,
+                3,
+                10,
+                false
+            ),
+
+
+            new SittingInfoData
+            (
+                0xD309,
+                -1,
+                2,
+                -1,
+                6,
+                3,
+                14,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD30A,
+                -1,
+                2,
+                -1,
+                6,
+                3,
+                14,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD30B,
+                -1,
+                2,
+                -1,
+                6,
+                3,
+                14,
+                false
+            ),
+
+            new SittingInfoData
+            (
+                0xD1F1,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD1F0,
+                2,
+                2,
+                2,
+                2,
+                0,
+                0,
+                false
+            ),
+
+            new SittingInfoData
+            (
+                0xD208,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD207,
+                2,
+                2,
+                2,
+                2,
+                0,
+                0,
+                false
+            ),
+
+            new SittingInfoData
+            (
+                0xD218,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD217,
+                2,
+                2,
+                2,
+                2,
+                0,
+                0,
+                false
+            ),
+
+            new SittingInfoData
+            (
+                0xD21A,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD219,
+                2,
+                2,
+                2,
+                2,
+                0,
+                0,
+                false
+            ),
+
+            new SittingInfoData
+            (
+                0xD21C,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD21B,
+                2,
+                2,
+                2,
+                2,
+                0,
+                0,
+                false
+            ),
+
+            new SittingInfoData
+            (
+                0xD21E,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD21D,
+                2,
+                2,
+                2,
+                2,
+                0,
+                0,
+                false
+            ),
+
+
+            new SittingInfoData
+            (
+                0xD1F3,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD1F2,
+                2,
+                2,
+                2,
+                2,
+                6,
+                6,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD1F5,
+                6,
+                6,
+                6,
+                6,
+                -8,
+                8,
+                true
+            ),
+            new SittingInfoData
+            (
+                0xD1F4,
+                0,
+                0,
+                0,
+                0,
+                0,
+                4,
+                true
+            ),
+            new SittingInfoData
+            (
+                0xD1F7,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD1F6,
+                2,
+                2,
+                2,
+                2,
+                6,
+                6,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD1F9,
+                6,
+                6,
+                6,
+                6,
+                -8,
+                8,
+                true
+            ),
+            new SittingInfoData
+            (
+                0xD1F8,
+                0,
+                0,
+                0,
+                0,
+                0,
+                4,
+                true
+            ),
+
+            new SittingInfoData
+            (
+                0xD1FB,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD1FA,
+                2,
+                2,
+                2,
+                2,
+                6,
+                6,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD1FD,
+                6,
+                6,
+                6,
+                6,
+                -8,
+                8,
+                true
+            ),
+            new SittingInfoData
+            (
+                0xD1FC,
+                0,
+                0,
+                0,
+                0,
+                0,
+                4,
+                true
+            ),
+
+            new SittingInfoData
+            (
+                0xD270,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD271,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD272,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD273,
+                4,
+                4,
+                4,
+                4,
+                0,
+                0,
+                false
+            ),
+
+            new SittingInfoData
+            (
+                0xD26E,
+                2,
+                2,
+                2,
+                2,
+                0,
+                0,
+                false
+            ),
+
+            new SittingInfoData
+            (
+                0xD26F,
+                2,
+                2,
+                2,
+                2,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD274,
+                2,
+                2,
+                2,
+                2,
+                0,
+                0,
+                false
+            ),
+            new SittingInfoData
+            (
+                0xD275,
+                2,
+                2,
+                2,
+                2,
+                0,
+                0,
+                false
+            ),
         };
     }
 }
