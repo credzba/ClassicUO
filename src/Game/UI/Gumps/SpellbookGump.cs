@@ -1071,7 +1071,7 @@ namespace ClassicUO.Game.UI.Gumps
                     break;
                 case SpellBookType.Druidic:
                     maxSpellsCount = SpellsDruid.MaxSpellCount;
-                    bookGraphic = 0x2B2F;
+                    bookGraphic = 0x2B18;
                     minimizedGraphic = 0x2B2D;
                     iconStartGraphic = 0x5A2A;
                     break;
