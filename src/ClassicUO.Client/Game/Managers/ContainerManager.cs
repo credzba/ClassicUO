@@ -253,11 +253,13 @@ namespace ClassicUO.Game.Managers
 
             path = Path.Combine(path, "containers.txt");
 
+            using var stream = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
+
             if (!File.Exists(path) || force)
             {
                 MakeDefault();
 
-                using (StreamWriter writer = new StreamWriter(File.Create(path)))
+                using (var writer = new StreamWriter(stream))
                 {
                     writer.WriteLine("# FORMAT");
 
@@ -281,9 +283,10 @@ namespace ClassicUO.Game.Managers
             }
 
             _data.Clear();
-
-            TextFileParser containersParser = new TextFileParser(
-                File.ReadAllText(path),
+            
+            using var reader = new StreamReader(stream);
+            var containersParser = new TextFileParser(
+                reader.ReadToEnd(),
                 new[] { ' ', '\t', ',' },
                 new[] { '#', ';' },
                 new[] { '"', '"' }
