@@ -342,7 +342,13 @@ namespace ClassicUO.Game.Scenes
             NetClient.Socket.Disconnected -= OnNetClientDisconnected;
             NetClient.Socket.Connected += OnNetClientConnected;
             NetClient.Socket.Disconnected += OnNetClientDisconnected;
-            NetClient.Socket.Connect(Settings.GlobalSettings.IP, Settings.GlobalSettings.Port);
+            Settings.GlobalSettings.Encryption = (byte)NetClient.Socket.Connect
+            (
+                Settings.GlobalSettings.IP, 
+                Settings.GlobalSettings.Port, 
+                Client.Version,
+                (EncryptionType)Settings.GlobalSettings.Encryption
+            );
         }
 
 
@@ -519,7 +525,7 @@ namespace ClassicUO.Game.Scenes
 
             uint address = NetClient.Socket.LocalIP;
 
-            EncryptionHelper.Initialize(true, address, (ENCRYPTION_TYPE)Settings.GlobalSettings.Encryption);
+            NetClient.Socket.Encryption?.Initialize(true, address);
 
             if (Client.Version >= ClientVersion.CV_6040)
             {
@@ -680,13 +686,18 @@ namespace ClassicUO.Game.Scenes
             uint seed = p.ReadUInt32BE();
 
             NetClient.Socket.Disconnect();
-            NetClient.Socket = new NetClient();
-            EncryptionHelper.Initialize(false, seed, (ENCRYPTION_TYPE) Settings.GlobalSettings.Encryption);
 
-            NetClient.Socket.Connect(new IPAddress(ip).ToString(), port);
+            Settings.GlobalSettings.Encryption = (byte) NetClient.Socket.Connect
+            (
+                new IPAddress(ip).ToString(), 
+                port, 
+                Client.Version, 
+                (EncryptionType)Settings.GlobalSettings.Encryption
+            );
 
             if (NetClient.Socket.IsConnected)
             {
+                NetClient.Socket.Encryption?.Initialize(false, seed);
                 NetClient.Socket.EnableCompression();
                 unsafe
                 {
