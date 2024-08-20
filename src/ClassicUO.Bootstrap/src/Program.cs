@@ -186,8 +186,13 @@ sealed class ClassicUOHost : IPluginHandler
         {
             throw new NotSupportedException("OS not suported");
         }
-
-        var libPtr = Native.LoadLibrary(libName);
+        IntPtr libPtr = (IntPtr)0;
+        if (File.Exists(libName))
+             libPtr = Native.LoadLibrary(libName);
+        else
+        {
+            Console.WriteLine($"File {libName} does not exist.");
+        }
 
         unsafe
         {
