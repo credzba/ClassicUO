@@ -44,14 +44,10 @@ namespace ClassicUO.Renderer.Animations
         public int MaxAnimationCount => _dataIndex.Length;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public AnimationGroupsType GetAnimType(ushort graphic) => _dataIndex[graphic]?.Type ?? 0;
+        public AnimationGroupsType GetAnimType(ushort graphic) => graphic < _dataIndex.Length ? _dataIndex[graphic]?.Type ?? 0 : 0;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public AnimationFlags  GetAnimFlags(ushort graphic) => _dataIndex[graphic]?.Flags ?? 0;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public sbyte GetMountedHeightOffset(ushort graphic) =>
-            _dataIndex[graphic]?.MountedHeightOffset ?? 0;
+        public AnimationFlags GetAnimFlags(ushort graphic) => graphic < _dataIndex.Length ? _dataIndex[graphic]?.Flags ?? 0 : 0;
 
         public bool PixelCheck(
             ushort animID,
@@ -161,8 +157,7 @@ namespace ClassicUO.Renderer.Animations
             out ushort hue,
             out bool useUOP,
             bool isEquip = false,
-            bool isCorpse = false,
-            bool forceUOP = false
+            bool isCorpse = false
         )
         {
             hue = 0;
@@ -195,8 +190,7 @@ namespace ClassicUO.Renderer.Animations
                         ref hue,
                         ref index.Flags,
                         out index.FileIndex,
-                        out index.Type,
-                        out index.MountedHeightOffset
+                        out index.Type
                     );
 
                     if (!indices.IsEmpty)
@@ -290,7 +284,7 @@ namespace ClassicUO.Renderer.Animations
 
             Span<AnimationsLoader.FrameInfo> frames;
 
-            if (animDir.FrameCount <= 0 || animDir.SpriteInfos == null)
+            if (animDir.FrameCount <= 0 && animDir.SpriteInfos == null)
             {
                 if (useUOP
                 //animDir.IsUOP ||
@@ -330,6 +324,8 @@ namespace ClassicUO.Renderer.Animations
 
                 if (frames.IsEmpty)
                 {
+                    animDir.FrameCount = 0;
+                    animDir.SpriteInfos = Array.Empty<SpriteInfo>();
                     return Span<SpriteInfo>.Empty;
                 }
 
@@ -432,7 +428,6 @@ namespace ClassicUO.Renderer.Animations
             public AnimationFlags Flags;
             public AnimationGroup[] Groups;
             public AnimationGroupUop[] UopGroups;
-            public sbyte MountedHeightOffset;
             public AnimationGroupsType Type = AnimationGroupsType.Unknown;
         }
     }

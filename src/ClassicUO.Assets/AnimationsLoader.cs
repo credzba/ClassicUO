@@ -1,34 +1,4 @@
-﻿#region license
-
-// Copyright (c) 2024, andreakarasho
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the
-//    documentation and/or other materials provided with the distribution.
-// 3. All advertising materials mentioning features or use of this software
-//    must display the following acknowledgement:
-//    This product includes software developed by andreakarasho - https://github.com/andreakarasho
-// 4. Neither the name of the copyright holder nor the
-//    names of its contributors may be used to endorse or promote products
-//    derived from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ''AS IS'' AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
-// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-#endregion
+﻿// SPDX-License-Identifier: BSD-2-Clause
 
 using ClassicUO.IO;
 using ClassicUO.Utility;
@@ -36,6 +6,7 @@ using ClassicUO.Utility.Logging;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -180,7 +151,7 @@ namespace ClassicUO.Assets
                                     _mobTypes[id] = new MobTypeInfo()
                                     {
                                         Type = (AnimationGroupsType)i,
-                                        Flags = (AnimationFlags )(0x80000000 | number)
+                                        Flags = (AnimationFlags)(0x80000000 | number)
                                     };
 
                                     break;
@@ -285,13 +256,11 @@ namespace ClassicUO.Assets
             ref ushort hue,
             ref AnimationFlags flags,
             out int fileIndex,
-            out AnimationGroupsType animType,
-            out sbyte mountHeight
+            out AnimationGroupsType animType
         )
         {
             fileIndex = 0;
             animType = AnimationGroupsType.Unknown;
-            mountHeight = 0;
 
             if (!_mobTypes.TryGetValue(body, out var mobInfo))
             {
@@ -307,7 +276,6 @@ namespace ClassicUO.Assets
                     animType = mobInfo.Type != AnimationGroupsType.Unknown ? mobInfo.Type : CalculateTypeByGraphic(body);
 
                 var replaceFound = _uopInfos.TryGetValue(body, out var uopInfo);
-                mountHeight = uopInfo.HeightOffset;
                 var animIndices = Array.Empty<AnimationDirection>();
 
                 for (int actioIdx = 0; actioIdx < MAX_ACTIONS; ++actioIdx)
@@ -344,7 +312,6 @@ namespace ClassicUO.Assets
                 hue = bodyConvInfo.Hue;
                 body = bodyConvInfo.Graphic;
                 fileIndex = bodyConvInfo.FileIndex;
-                mountHeight = bodyConvInfo.MountHeight;
 
                 if (clientVersion < ClientVersion.CV_500A)
                     animType = bodyConvInfo.AnimType;
@@ -376,7 +343,6 @@ namespace ClassicUO.Assets
 
             var indicesBuf = ArrayPool<AnimIdxBlock>.Shared.Rent(size);
             fileIdx.Read(MemoryMarshal.AsBytes(indicesBuf.AsSpan(0, size)));
-            ArrayPool<AnimIdxBlock>.Shared.Return(indicesBuf);
 
             var directions = new AnimationDirection[size];
             for (var i = 0; i < directions.Length; ++i)
@@ -389,13 +355,14 @@ namespace ClassicUO.Assets
                 dir.CompressionType = CompressionType.None;
             }
 
+            ArrayPool<AnimIdxBlock>.Shared.Return(indicesBuf);
             return directions;
         }
 
         private long CalculateOffset(
             ushort graphic,
             AnimationGroupsType type,
-            AnimationFlags  flags,
+            AnimationFlags flags,
             out int groupCount
         )
         {
@@ -881,26 +848,6 @@ namespace ClassicUO.Assets
 
                         reader.Skip(60);
                     }
-
-                    if (
-                        animID == 0x04E7
-                        || animID == 0x042D
-                        || animID == 0x04E6
-                        || animID == 0x05F7
-                        || animID == 0x05A1
-                    )
-                    {
-                        uopInfo.HeightOffset = 18;
-                    }
-                    else if (
-                        animID == 0x01B0
-                        || animID == 0x0579
-                        || animID == 0x05F6
-                        || animID == 0x05A0
-                    )
-                    {
-                        uopInfo.HeightOffset = 9;
-                    }
                 }
 
                 _uopInfos[(int)animID] = uopInfo;
@@ -998,91 +945,91 @@ namespace ClassicUO.Assets
             {
                 case 7:
                 case 0:
-                {
-                    if (data.Direction1 == -1)
                     {
-                        if (direction == 7)
+                        if (data.Direction1 == -1)
                         {
-                            direction = (byte)data.Direction4;
+                            if (direction == 7)
+                            {
+                                direction = (byte)data.Direction4;
+                            }
+                            else
+                            {
+                                direction = (byte)data.Direction2;
+                            }
                         }
                         else
                         {
-                            direction = (byte)data.Direction2;
+                            direction = (byte)data.Direction1;
                         }
-                    }
-                    else
-                    {
-                        direction = (byte)data.Direction1;
-                    }
 
-                    break;
-                }
+                        break;
+                    }
 
                 case 1:
                 case 2:
-                {
-                    if (data.Direction2 == -1)
                     {
-                        if (direction == 1)
+                        if (data.Direction2 == -1)
                         {
-                            direction = (byte)data.Direction1;
+                            if (direction == 1)
+                            {
+                                direction = (byte)data.Direction1;
+                            }
+                            else
+                            {
+                                direction = (byte)data.Direction3;
+                            }
+                        }
+                        else
+                        {
+                            direction = (byte)data.Direction2;
+                        }
+
+                        break;
+                    }
+
+                case 3:
+                case 4:
+                    {
+                        if (data.Direction3 == -1)
+                        {
+                            if (direction == 3)
+                            {
+                                direction = (byte)data.Direction2;
+                            }
+                            else
+                            {
+                                direction = (byte)data.Direction4;
+                            }
                         }
                         else
                         {
                             direction = (byte)data.Direction3;
                         }
-                    }
-                    else
-                    {
-                        direction = (byte)data.Direction2;
+
+                        break;
                     }
 
-                    break;
-                }
-
-                case 3:
-                case 4:
-                {
-                    if (data.Direction3 == -1)
+                case 5:
+                case 6:
                     {
-                        if (direction == 3)
+                        if (data.Direction4 == -1)
                         {
-                            direction = (byte)data.Direction2;
+                            if (direction == 5)
+                            {
+                                direction = (byte)data.Direction3;
+                            }
+                            else
+                            {
+                                direction = (byte)data.Direction1;
+                            }
                         }
                         else
                         {
                             direction = (byte)data.Direction4;
                         }
-                    }
-                    else
-                    {
-                        direction = (byte)data.Direction3;
-                    }
 
-                    break;
-                }
-
-                case 5:
-                case 6:
-                {
-                    if (data.Direction4 == -1)
-                    {
-                        if (direction == 5)
-                        {
-                            direction = (byte)data.Direction3;
-                        }
-                        else
-                        {
-                            direction = (byte)data.Direction1;
-                        }
+                        break;
                     }
-                    else
-                    {
-                        direction = (byte)data.Direction4;
-                    }
-
-                    break;
-                }
             }
 
             GetSittingAnimDirection(ref direction, ref mirror, ref x, ref y);
@@ -1141,7 +1088,7 @@ namespace ClassicUO.Assets
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte GetDeathAction(
             ushort animID,
-            AnimationFlags  animFlags,
+            AnimationFlags animFlags,
             AnimationGroupsType animType,
             bool second,
             bool isRunning = false
@@ -1181,14 +1128,14 @@ namespace ClassicUO.Assets
                     );
 
                 case AnimationGroupsType.SeaMonster:
-                {
-                    if (!isRunning)
                     {
-                        return 8;
-                    }
+                        if (!isRunning)
+                        {
+                            return 8;
+                        }
 
-                    goto case AnimationGroupsType.Monster;
-                }
+                        goto case AnimationGroupsType.Monster;
+                    }
 
                 case AnimationGroupsType.Monster:
 
@@ -1273,91 +1220,129 @@ namespace ClassicUO.Assets
 
                 reader = new StackDataReader(dbuf);
             }
-          
-            
-            reader.Skip(32);
 
-            long end = (long)reader.StartAddress + reader.Length;
+            reader.Skip(32);
 
             int fc = reader.ReadInt32LE();
             uint dataStart = reader.ReadUInt32LE();
             reader.Seek(dataStart);
 
-            byte frameCount = (byte)(
-                type < AnimationGroupsType.Equipment ? Math.Round(fc / (float) MAX_DIRECTIONS) : MAX_DIRECTIONS * 2
-            );
-            if (frameCount > _frames.Length)
+            UOPFrameData[] sharedBuffer = ArrayPool<UOPFrameData>.Shared.Rent(fc);
+            try
             {
-                _frames = new FrameInfo[frameCount];
-            }
+                var frameData = sharedBuffer.AsSpan(0, fc);
+                frameData.Clear();
 
-            var frames = _frames.AsSpan(0, frameCount);
-
-            /* If the UOP files didn't omit frames, we could just do this:
-             * zlibReader.Skip(sizeof(UOPAnimationHeader) * direction * frameCount);
-             * but we can't. So we have to walk through the frames to seek to where we need to go.
-             */
-            for (ushort currentDir = 0; currentDir <= direction; currentDir++)
-            {
-                for (ushort frameNum = 0; frameNum < frameCount; frameNum++)
+                for (var i = 0; i < fc; ++i)
                 {
-                    long start = reader.Position;
-                    ref readonly var animHeaderInfo = ref Unsafe.AsRef<UOPAnimationHeader>(reader.PositionAddress.ToPointer());
+                    var start = reader.Position;
 
-                    if (animHeaderInfo.Group != animGroup)
+                    var group = reader.ReadUInt16LE();
+                    var frameId = reader.ReadUInt16LE();
+                    reader.ReadUInt64LE();
+                    var pixeloffset = reader.ReadUInt32LE();
+
+                    ref var frame = ref frameData[i];
+                    frame.Position = start;
+                    frame.Group = group;
+                    frame.FrameID = frameId;
+                    frame.PixelOffset = pixeloffset;
+                }
+
+                var list = new List<UOPFrameData>();
+                var lastFrameId = 1;
+                for (var i = 0; i < fc; ++i)
+                {
+                    while (frameData[i].FrameID - lastFrameId > 1)
                     {
-                        /* Something bad has happened. Just return. */
-                        // return Span<FrameInfo>.Empty;
+                        lastFrameId += 1;
+                        list.Add(new()
+                        {
+                            Position = 0, // make sure we treat it as an empty frame
+                            FrameID = lastFrameId
+                        });
                     }
 
-                    /* FrameID is 1's based and just keeps increasing, regardless of direction.
-                     * So north will be 1-22, northeast will be 23-44, etc. And it's possible for frames
-                     * to be missing. */
-                    ushort headerFrameNum = (ushort)((animHeaderInfo.FrameID - 1) % frameCount);
+                    list.Add(frameData[i]);
+                    lastFrameId = frameData[i].FrameID;
+                }
 
-                    ref var frame = ref frames[frameNum];
+                frameData = CollectionsMarshal.AsSpan(list);
+                var maxFrameCount = frameData.Length;
 
-                    // we need to zero-out the frame or we will see ghost animations coming from other animation queries
-                    frame.Num = frameNum;
-                    frame.CenterX = 0;
-                    frame.CenterY = 0;
-                    frame.Width = 0;
-                    frame.Height = 0;
+                // Looks like the min amount of frames is 10 for equipment
+                var realFrameCount = type == AnimationGroupsType.Equipment ?
+                    Math.Max(10, (int)Math.Round(maxFrameCount / (float)MAX_DIRECTIONS))
+                    :
+                    (int)Math.Round(maxFrameCount / (float)MAX_DIRECTIONS);
 
-                    if (frameNum < headerFrameNum)
+
+                if (realFrameCount > _frames.Length)
+                {
+                    _frames = new FrameInfo[realFrameCount];
+                }
+
+                var framesSpan = _frames.AsSpan(0, realFrameCount);
+                framesSpan.Clear();
+
+                // var dirFrameStartIdx = realFrameCount * direction;
+
+                foreach (ref readonly var frame in frameData)
+                {
+                    // validate the group only if the frame is valid
+                    if (frame.Position > 0)
                     {
-                        /* Missing frame. Keep walking forward. */
+                        if (frame.Group != animGroup)
+                        {
+                            // we dont ignore here, might be the AnimationSequence.uop that changes the group
+                            // continue;
+                        }
+                    }
+
+                    var frameDirection = (frame.FrameID - 1) / realFrameCount;
+
+                    if (frameDirection < direction)
+                    {
+                        // still not getting the right direction yet
                         continue;
                     }
 
-                    if (frameNum > headerFrameNum)
+                    if (frameDirection > direction)
                     {
-                        /* We've reached the next direction early */
+                        // end of the direction
                         break;
                     }
 
-                    if (currentDir == direction)
+                    var idx = (frame.FrameID - 1) % realFrameCount;
+                    ref var frameInfo = ref framesSpan[idx];
+
+                    // we need to zero-out the frame or we will see ghost animations coming from other animation queries
+                    frameInfo.Num = idx;
+                    frameInfo.CenterX = 0;
+                    frameInfo.CenterY = 0;
+                    frameInfo.Width = 0;
+                    frameInfo.Height = 0;
+
+                    // if it's a missing frame, we skip, but the animation gets tracked
+                    if (frame.Position == 0)
                     {
-                        /* We're on the direction we actually wanted to read */
-                        if (start + animHeaderInfo.DataOffset >= reader.Length)
-                        {
-                            /* File seems to be corrupt? Skip loading. */
-                            continue;
-                        }
-
-                        reader.Skip((int)animHeaderInfo.DataOffset);
-
-                        var palette = MemoryMarshal.Cast<byte, ushort>(reader.Buffer.Slice(reader.Position, 512));
-                        reader.Skip(512);
-
-                        ReadSpriteData(ref reader, palette, ref frame, true);
+                        continue;
                     }
 
-                    reader.Seek(start + sizeof(UOPAnimationHeader));
-                }
-            }
+                    reader.Seek(frame.Position + frame.PixelOffset);
 
-            return frames;
+                    var palette = MemoryMarshal.Cast<byte, ushort>(reader.Buffer.Slice(reader.Position, 512));
+                    reader.Skip(512);
+
+                    ReadSpriteData(ref reader, palette, ref frameInfo, true);
+                }
+
+                return framesSpan;
+            }
+            finally
+            {
+                ArrayPool<UOPFrameData>.Shared.Return(sharedBuffer);
+            }
         }
 
         public Span<FrameInfo> ReadMULAnimationFrames(int fileIndex, AnimationDirection index)
@@ -1562,6 +1547,14 @@ namespace ClassicUO.Assets
 
             public uint DataOffset;
         }
+
+        [DebuggerDisplay("FramID: {FrameID}")]
+        struct UOPFrameData
+        {
+            public long Position;
+            public uint PixelOffset;
+            public int FrameID, Group;
+        }
     }
 
     public enum AnimationGroups
@@ -1758,7 +1751,6 @@ namespace ClassicUO.Assets
     struct UopInfo
     {
         public ReplacedAnimArray ReplacedAnimations;
-        public sbyte HeightOffset;
     }
 
     [Flags]
