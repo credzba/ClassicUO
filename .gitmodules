@@ -1,6 +1,8 @@
 [submodule "external/FNA"]
 	path = external/FNA
 	url = https://github.com/credzba/FNA.git
+	branch = used-by-classicuo
 [submodule "external/MP3Sharp"]
 	path = external/MP3Sharp
 	url = https://github.com/credzba/MP3Sharp.git
+	branch = used-by-classicuo
