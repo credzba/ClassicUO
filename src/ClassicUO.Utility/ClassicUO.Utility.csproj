@@ -2,7 +2,12 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
+    <TargetFramework>net462</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\external\FNA\FNA.Core.csproj" />

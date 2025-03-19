@@ -539,10 +539,6 @@ namespace ClassicUO.Game.GameObjects
         }
 
         private static Dictionary<ushort, ushort> _mounts = new Dictionary<ushort, ushort>()
-        private static readonly Dictionary<ushort, ushort> _mounts = new Dictionary<
-            ushort,
-            ushort
-        >()
         {
             { 0x3E90, 0x0114 }, // 16016 Reptalon
             { 0x3E91, 0x0115 }, // 16017
