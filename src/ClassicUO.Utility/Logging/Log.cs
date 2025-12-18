@@ -56,63 +56,99 @@ namespace ClassicUO.Utility.Logging
 
         public static void Resume(LogTypes logTypes)
         {
-            _logger.LogTypes = logTypes;
+            if (_logger != null)
+            {
+                _logger.LogTypes = logTypes;
+            }
         }
 
         public static void Pause()
         {
-            _logger.LogTypes = LogTypes.None;
+            if (_logger != null)
+            {
+                _logger.LogTypes = LogTypes.None;
+            }
         }
 
         [Conditional("DEBUG")]
         public static void Debug(string text)
         {
-            _logger.Message(LogTypes.Debug, text);
+            if (_logger != null)
+            {
+                _logger.Message(LogTypes.Debug, text);
+            }
         }
 
         public static void Info(string text)
         {
-            _logger.Message(LogTypes.Info, text);
+            if (_logger != null)
+            {
+                _logger.Message(LogTypes.Info, text);
+            }
         }
 
         public static void Trace(string text)
         {
-            _logger.Message(LogTypes.Trace, text);
+            if (_logger != null)
+            {
+                _logger.Message(LogTypes.Trace, text);
+            }
         }
 
         public static void Warn(string text)
         {
-            _logger.Message(LogTypes.Warning, text);
+            if (_logger != null)
+            {
+                _logger.Message(LogTypes.Warning, text);
+            }
         }
 
         public static void Error(string text)
         {
-            _logger.Message(LogTypes.Error, text);
+            if (_logger != null)
+            {
+                _logger.Message(LogTypes.Error, text);
+            }
         }
 
         public static void Panic(string text)
         {
-            _logger.Message(LogTypes.Error, text);
+            if (_logger != null)
+            {
+                _logger.Message(LogTypes.Error, text);
+            }
         }
 
         public static void NewLine()
         {
-            _logger.NewLine();
+            if (_logger != null)
+            {
+                _logger.NewLine();
+            }
         }
 
         public static void Clear()
         {
-            _logger.Clear();
+            if (_logger != null)
+            {
+                _logger.Clear();
+            }
         }
 
         public static void PushIndent()
         {
-            _logger.PushIndent();
+            if (_logger != null)
+            {
+                _logger.PushIndent();
+            }
         }
 
         public static void PopIndent()
         {
-            _logger.PopIndent();
+            if (_logger != null)
+            {
+                _logger.PopIndent();
+            }
         }
     }
 }
