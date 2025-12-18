@@ -68,7 +68,11 @@ namespace ClassicUO.Utility
                 }
             }
 
-            table.Sort();
+            // 8.0 table.Sort();
+            // 4.7 hack
+            ushort[] tmp = table.ToArray();
+            Array.Sort(tmp);
+            tmp.CopyTo(table);
         }
 
         static byte[] InternalDecompress(Span<byte> input, uint len)
